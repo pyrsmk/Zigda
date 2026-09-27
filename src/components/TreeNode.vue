@@ -108,11 +108,15 @@ const counts = computed(() => {
 }
 
 .kind {
-  color: var(--text-faint);
+  color: var(--accent-muted);
 }
 
 .kind.folder {
-  color: #c79a52;
+  color: var(--accent);
+}
+
+.row.active .kind {
+  color: var(--accent-text);
 }
 
 .name {
