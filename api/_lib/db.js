@@ -13,7 +13,9 @@ export function db() {
   if (!pool) {
     const found = URL_VARS.find((name) => process.env[name])
     if (!found) throw new Error(`No database URL found, looked for: ${URL_VARS.join(', ')}`)
-    const connectionString = process.env[found].replace(/[?&]sslmode=[^&]*/, '')
+    const url = new URL(process.env[found])
+    url.searchParams.delete('sslmode')
+    const connectionString = url.toString()
     const local = /localhost|127\.0\.0\.1|host=\//.test(connectionString)
     pool = new pg.Pool({
       connectionString,
