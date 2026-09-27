@@ -1,8 +1,8 @@
 import { randomBytes } from 'node:crypto'
-import { handler, origin, param, redirect } from '../_lib/http.js'
-import { GITHUB_URL } from '../_lib/github.js'
-import { one } from '../_lib/db.js'
-import { setCookie } from '../_lib/session.js'
+import { handler, origin, param, redirect } from '../../_lib/http.js'
+import { GITHUB_URL } from '../../_lib/github.js'
+import { one } from '../../_lib/db.js'
+import { setCookie } from '../../_lib/session.js'
 
 export default handler(
   {

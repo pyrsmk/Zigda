@@ -1,6 +1,6 @@
-import { handler, HttpError, param } from './_lib/http.js'
-import { rawFile, repoContext } from './_lib/repo.js'
-import { imageType } from '../shared/files.js'
+import { handler, HttpError, param } from '../_lib/http.js'
+import { rawFile, repoContext } from '../_lib/repo.js'
+import { imageType } from '../../shared/files.js'
 
 export default handler({
   GET: async (req, res) => {

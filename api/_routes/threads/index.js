@@ -1,6 +1,6 @@
-import { body, handler, HttpError, param, send } from '../_lib/http.js'
-import { one } from '../_lib/db.js'
-import { createThread, loadThread, loadThreads } from '../_lib/threads.js'
+import { body, handler, HttpError, param, send } from '../../_lib/http.js'
+import { one } from '../../_lib/db.js'
+import { createThread, loadThread, loadThreads } from '../../_lib/threads.js'
 
 function checkAnchor(anchor) {
   const valid =

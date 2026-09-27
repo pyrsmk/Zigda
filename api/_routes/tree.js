@@ -1,5 +1,5 @@
-import { handler, send } from './_lib/http.js'
-import { repoContext, tree } from './_lib/repo.js'
+import { handler, send } from '../_lib/http.js'
+import { repoContext, tree } from '../_lib/repo.js'
 
 export default handler({
   GET: async (req, res) => {

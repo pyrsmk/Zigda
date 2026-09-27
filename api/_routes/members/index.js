@@ -1,8 +1,8 @@
-import { body, handler, HttpError, send } from '../_lib/http.js'
-import { gh, GithubError } from '../_lib/github.js'
-import { one, query } from '../_lib/db.js'
-import { rootToken } from '../_lib/repo.js'
-import { publicUser } from '../_lib/session.js'
+import { body, handler, HttpError, send } from '../../_lib/http.js'
+import { gh, GithubError } from '../../_lib/github.js'
+import { one, query } from '../../_lib/db.js'
+import { rootToken } from '../../_lib/repo.js'
+import { publicUser } from '../../_lib/session.js'
 
 export default handler(
   {

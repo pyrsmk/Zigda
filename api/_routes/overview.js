@@ -1,5 +1,5 @@
-import { handler, send } from './_lib/http.js'
-import { query } from './_lib/db.js'
+import { handler, send } from '../_lib/http.js'
+import { query } from '../_lib/db.js'
 
 export default handler({
   GET: async (req, res) => {

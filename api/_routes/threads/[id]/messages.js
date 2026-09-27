@@ -1,5 +1,5 @@
-import { body, handler, HttpError, param, send } from '../../_lib/http.js'
-import { addMessage, loadThread } from '../../_lib/threads.js'
+import { body, handler, HttpError, param, send } from '../../../_lib/http.js'
+import { addMessage, loadThread } from '../../../_lib/threads.js'
 
 export default handler({
   POST: async (req, res) => {

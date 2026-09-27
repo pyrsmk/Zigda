@@ -1,7 +1,7 @@
-import { handler, send } from './_lib/http.js'
-import { settings } from './_lib/repo.js'
-import { publicUser } from './_lib/session.js'
-import { one } from './_lib/db.js'
+import { handler, send } from '../_lib/http.js'
+import { settings } from '../_lib/repo.js'
+import { publicUser } from '../_lib/session.js'
+import { one } from '../_lib/db.js'
 
 export default handler({
   GET: async (req, res) => {

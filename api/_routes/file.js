@@ -1,5 +1,5 @@
-import { handler, HttpError, param, send } from './_lib/http.js'
-import { readFile, repoContext } from './_lib/repo.js'
+import { handler, HttpError, param, send } from '../_lib/http.js'
+import { readFile, repoContext } from '../_lib/repo.js'
 
 export default handler({
   GET: async (req, res) => {

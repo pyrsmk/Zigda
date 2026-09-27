@@ -1,6 +1,6 @@
-import { body, handler, param, send } from '../_lib/http.js'
-import { getProposal, reviseProposal } from '../_lib/proposals.js'
-import { loadThread } from '../_lib/threads.js'
+import { body, handler, param, send } from '../../_lib/http.js'
+import { getProposal, reviseProposal } from '../../_lib/proposals.js'
+import { loadThread } from '../../_lib/threads.js'
 
 async function view(id) {
   const proposal = await getProposal(id)

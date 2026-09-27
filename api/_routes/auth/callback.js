@@ -1,8 +1,8 @@
-import { handler, origin, param, redirect } from '../_lib/http.js'
-import { exchangeCode, gh } from '../_lib/github.js'
-import { one, query } from '../_lib/db.js'
-import { cookies, openSession, setCookie } from '../_lib/session.js'
-import { saveRootToken, settings } from '../_lib/repo.js'
+import { handler, origin, param, redirect } from '../../_lib/http.js'
+import { exchangeCode, gh } from '../../_lib/github.js'
+import { one, query } from '../../_lib/db.js'
+import { cookies, openSession, setCookie } from '../../_lib/session.js'
+import { saveRootToken, settings } from '../../_lib/repo.js'
 
 async function upsertProfile(profile, role) {
   return one(

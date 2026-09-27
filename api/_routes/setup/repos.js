@@ -1,6 +1,6 @@
-import { handler, send } from '../_lib/http.js'
-import { gh } from '../_lib/github.js'
-import { rootToken } from '../_lib/repo.js'
+import { handler, send } from '../../_lib/http.js'
+import { gh } from '../../_lib/github.js'
+import { rootToken } from '../../_lib/repo.js'
 
 export default handler(
   {

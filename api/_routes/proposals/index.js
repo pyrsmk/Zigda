@@ -1,8 +1,8 @@
-import { body, handler, HttpError, param, send } from '../_lib/http.js'
-import { one } from '../_lib/db.js'
-import { readFile, readText, repoContext } from '../_lib/repo.js'
-import { createThread, loadThreads } from '../_lib/threads.js'
-import { checkContent } from '../_lib/proposals.js'
+import { body, handler, HttpError, param, send } from '../../_lib/http.js'
+import { one } from '../../_lib/db.js'
+import { readFile, readText, repoContext } from '../../_lib/repo.js'
+import { createThread, loadThreads } from '../../_lib/threads.js'
+import { checkContent } from '../../_lib/proposals.js'
 
 const OPEN = `('pending', 'applying', 'conflict')`
 

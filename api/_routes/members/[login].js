@@ -1,6 +1,6 @@
-import { handler, HttpError, param, send } from '../_lib/http.js'
-import { query } from '../_lib/db.js'
-import { applyCompletedProposals } from '../_lib/proposals.js'
+import { handler, HttpError, param, send } from '../../_lib/http.js'
+import { query } from '../../_lib/db.js'
+import { applyCompletedProposals } from '../../_lib/proposals.js'
 
 export default handler(
   {

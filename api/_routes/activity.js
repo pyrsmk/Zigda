@@ -1,5 +1,5 @@
-import { handler, send } from './_lib/http.js'
-import { loadThreads } from './_lib/threads.js'
+import { handler, send } from '../_lib/http.js'
+import { loadThreads } from '../_lib/threads.js'
 
 export default handler({
   GET: async (req, res) => {

@@ -1,6 +1,6 @@
-import { body, handler, HttpError, send } from '../_lib/http.js'
-import { gh } from '../_lib/github.js'
-import { rootToken, saveRepo, splitRepo } from '../_lib/repo.js'
+import { body, handler, HttpError, send } from '../../_lib/http.js'
+import { gh } from '../../_lib/github.js'
+import { rootToken, saveRepo, splitRepo } from '../../_lib/repo.js'
 
 export default handler(
   {

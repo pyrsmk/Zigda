@@ -1,5 +1,5 @@
-import { handler, send } from '../_lib/http.js'
-import { closeSession } from '../_lib/session.js'
+import { handler, send } from '../../_lib/http.js'
+import { closeSession } from '../../_lib/session.js'
 
 export default handler(
   {
