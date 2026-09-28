@@ -52,7 +52,7 @@ const counts = computed(() => {
       :to="{ name: 'file', params: { path: node.path.split('/') } }"
       class="row"
       :class="{ active: node.path === current }"
-      :style="{ paddingLeft: `${21 + depth * 14}px` }"
+      :style="{ paddingLeft: `${27 + depth * 14}px` }"
     >
       <Icon :name="icon" :size="16" class="kind" />
       <span class="name">{{ node.name }}</span>

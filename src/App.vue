@@ -98,8 +98,8 @@ async function signOut() {
   height: 100%;
 }
 
-.shell.collapsed {
-  grid-template-columns: 0 1fr;
+.toggle {
+  display: none;
 }
 
 .topbar {
@@ -231,6 +231,10 @@ nav {
 
   .shell:not(.collapsed) {
     grid-template-columns: 260px 1fr;
+  }
+
+  .toggle {
+    display: inline-flex;
   }
 
   .repo,
