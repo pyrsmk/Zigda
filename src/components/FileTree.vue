@@ -160,7 +160,7 @@ function create() {
   display: flex;
   flex-direction: column;
   height: 100%;
-  width: 290px;
+  width: 100%;
 }
 
 .tree-head {

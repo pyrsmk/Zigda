@@ -51,7 +51,7 @@ function last(thread) {
     <template v-else>
       <h1>Hello {{ session.user.name?.split(' ')[0] || session.user.login }}</h1>
       <p class="muted intro">
-        Pick a file from the list on the left to read it. Select a passage to comment on it or propose a new
+        Open a file from the file list to read it. Select a passage to comment on it or propose a new
         wording: nothing is written to the repository without the approval of every other team member.
       </p>
       <h2>Recent activity</h2>
@@ -143,6 +143,20 @@ h2 {
   text-overflow: ellipsis;
   white-space: nowrap;
   margin-top: 2px !important;
+}
+
+@media (max-width: 760px) {
+  .item {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .last {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
 }
 
 .side {

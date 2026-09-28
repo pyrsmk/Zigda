@@ -152,4 +152,11 @@ const counts = computed(() => {
   background: var(--accent-soft);
   color: var(--accent-text);
 }
+
+@media (pointer: coarse) {
+  .row {
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+}
 </style>

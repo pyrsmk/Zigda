@@ -12,6 +12,7 @@ import Composer from '../components/Composer.vue'
 import HistoryPanel from '../components/HistoryPanel.vue'
 import Icon from '../components/Icon.vue'
 import Avatar from '../components/Avatar.vue'
+import { compact, touch } from '../lib/viewport.js'
 
 const props = defineProps({ path: String })
 const router = useRouter()
@@ -32,6 +33,7 @@ const content = ref(null)
 const contentArea = ref(null)
 const confirmDelete = ref(false)
 const deleting = ref(false)
+const sheetOpen = ref(false)
 
 function readMode() {
   try {
@@ -82,6 +84,7 @@ const visible = computed(() =>
 )
 
 const resolvedCount = computed(() => threads.value.filter((t) => t.status === 'resolved').length)
+const openCount = computed(() => threads.value.filter((t) => t.status === 'open').length)
 
 const html = computed(() => {
   if (!tree.value) return ''
@@ -124,6 +127,7 @@ async function load() {
   activeId.value = null
   bubble.value = null
   confirmDelete.value = false
+  sheetOpen.value = false
   await Promise.all([loadFile(), loadThreads()])
   loading.value = false
   const wanted = route.query.discussion
@@ -152,6 +156,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   clearInterval(timer)
+  clearTimeout(settle)
   document.removeEventListener('selectionchange', onSelectionChange)
   document.removeEventListener('mousedown', onDocumentMouseDown)
 })
@@ -170,9 +175,14 @@ function takenBy(range) {
 }
 
 async function openBubble(range, line) {
+  const taken = takenBy(range)?.id ?? null
+  if (touch.value) {
+    bubble.value = { ...range, taken, docked: true }
+    return
+  }
   bubble.value = {
     ...range,
-    taken: takenBy(range)?.id ?? null,
+    taken,
     top: (line.top + line.bottom) / 2 - 12,
     left: line.right + 6,
   }
@@ -185,7 +195,7 @@ async function openBubble(range, line) {
   }
 }
 
-function onMouseUp() {
+function captureSelection() {
   const sel = content.value && selectionRange(content.value)
   if (!sel) return
   const range = trimRange(sel.start, sel.end)
@@ -193,8 +203,19 @@ function onMouseUp() {
   openBubble(range, sel.line)
 }
 
+let settle
 function onSelectionChange() {
-  if (bubble.value && window.getSelection()?.isCollapsed) bubble.value = null
+  clearTimeout(settle)
+  if (window.getSelection()?.isCollapsed) {
+    if (bubble.value?.docked) settle = setTimeout(() => (bubble.value = null), 300)
+    else bubble.value = null
+    return
+  }
+  if (touch.value) settle = setTimeout(captureSelection, 300)
+}
+
+function onContentScroll() {
+  if (!bubble.value?.docked) bubble.value = null
 }
 
 function onDocumentMouseDown(event) {
@@ -213,6 +234,7 @@ function startDraft(kind, { start, end }) {
   bubble.value = null
   activeId.value = null
   panel.value = 'threads'
+  sheetOpen.value = true
   window.getSelection()?.removeAllRanges()
 }
 
@@ -235,10 +257,11 @@ function onContentClick(event) {
 async function select(id) {
   activeId.value = id
   panel.value = 'threads'
+  sheetOpen.value = true
   await nextTick()
   document.getElementById(`thread-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   const mark = content.value?.querySelector(`[data-t~="${id}"]`)
-  mark?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  mark?.scrollIntoView({ behavior: 'smooth', block: compact.value ? 'start' : 'center' })
 }
 
 function onCreated(thread) {
@@ -285,10 +308,10 @@ const crumbs = computed(() => props.path.split('/'))
       <div class="tools">
         <div v-if="text !== null" class="segmented">
           <button :class="{ active: mode === 'formatted' }" @click="mode = 'formatted'">
-            <Icon name="eye" :size="13" /> Formatted
+            <Icon name="eye" :size="13" /><span class="label">Formatted</span>
           </button>
           <button :class="{ active: mode === 'raw' }" @click="mode = 'raw'">
-            <Icon name="code" :size="13" /> Raw text
+            <Icon name="code" :size="13" /><span class="label">Raw text</span>
           </button>
         </div>
         <button v-if="file" class="btn ghost small" title="Propose deletion" @click="confirmDelete = !confirmDelete">
@@ -324,7 +347,7 @@ const crumbs = computed(() => props.path.split('/'))
     </div>
 
     <div class="body">
-      <section ref="contentArea" class="content-area" @scroll="bubble = null">
+      <section ref="contentArea" class="content-area" @scroll="onContentScroll">
         <div v-if="loading" class="spinner"></div>
         <div v-else-if="error" class="error">{{ error }}</div>
         <div v-else-if="image" class="image-box">
@@ -339,14 +362,14 @@ const crumbs = computed(() => props.path.split('/'))
             ref="content"
             class="content"
             :class="{ prose: layout === 'markdown' }"
-            @mouseup="onMouseUp"
+            @mouseup="captureSelection"
             @click="onContentClick"
             v-html="html"
           ></div>
         </div>
       </section>
 
-      <aside v-if="text !== null || image" class="panel">
+      <aside v-if="text !== null || image" class="panel" :class="{ open: sheetOpen }">
         <div class="panel-tabs">
           <div class="segmented">
             <button :class="{ active: panel === 'threads' }" @click="panel = 'threads'">
@@ -356,6 +379,9 @@ const crumbs = computed(() => props.path.split('/'))
               <Icon name="history" :size="13" /> History
             </button>
           </div>
+          <button class="btn ghost small sheet-close" title="Close" @click="sheetOpen = false">
+            <Icon name="x" :size="15" />
+          </button>
         </div>
         <template v-if="panel === 'threads'">
           <Composer
@@ -395,20 +421,34 @@ const crumbs = computed(() => props.path.split('/'))
       </aside>
     </div>
 
+    <button
+      v-if="(text !== null || image) && !sheetOpen && !bubble"
+      class="btn primary sheet-toggle"
+      @click="sheetOpen = true"
+    >
+      <Icon name="message" :size="15" /> Discussions
+      <span v-if="openCount" class="sheet-count">{{ openCount }}</span>
+    </button>
+
     <Teleport to="body">
       <div
         v-if="bubble"
         ref="bubbleEl"
         class="bubble"
-        :style="{ top: `${bubble.top}px`, left: `${bubble.left}px` }"
+        :class="{ docked: bubble.docked }"
+        :style="bubble.docked ? null : { top: `${bubble.top}px`, left: `${bubble.left}px` }"
         @mousedown.prevent
       >
         <button v-if="bubble.taken" @click="openTaken">
           <Icon name="message" :size="12" /> Already under discussion: open it
         </button>
         <template v-else>
-          <button @click="startDraft('comment', bubble)"><Icon name="message" :size="12" /> Comment</button>
-          <button @click="startDraft('version', bubble)"><Icon name="pencil" :size="12" /> Modify</button>
+          <button @click="startDraft('comment', bubble)">
+            <Icon name="message" :size="12" /> Comment
+          </button>
+          <button @click="startDraft('version', bubble)">
+            <Icon name="pencil" :size="12" /> Modify
+          </button>
         </template>
       </div>
     </Teleport>
@@ -461,6 +501,11 @@ const crumbs = computed(() => props.path.split('/'))
   display: inline-flex;
   align-items: center;
   gap: 5px;
+}
+
+.sheet-close,
+.sheet-toggle {
+  display: none;
 }
 
 .confirm {
@@ -613,6 +658,7 @@ const crumbs = computed(() => props.path.split('/'))
 }
 
 .panel-tabs {
+  position: relative;
   display: flex;
   justify-content: center;
   margin-bottom: 4px;
@@ -667,5 +713,130 @@ const crumbs = computed(() => props.path.split('/'))
     border-left: 0;
     border-top: 1px solid var(--border);
   }
+}
+
+@media (max-width: 760px) {
+  .file-head {
+    padding: 10px 14px;
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+
+  .crumbs {
+    flex: 1;
+    font-size: 14px;
+  }
+
+  .crumbs .last {
+    font-size: 16px;
+  }
+
+  .tools {
+    gap: 4px;
+  }
+
+  .file-head .label {
+    display: none;
+  }
+
+  .confirm {
+    margin: 10px 14px 0;
+  }
+
+  .pending-list {
+    padding: 10px 14px 0;
+  }
+
+  .pending > .faint {
+    display: none;
+  }
+
+  .content-area {
+    padding: 12px 10px 90px;
+  }
+
+  .paper.markdown,
+  .paper.plain,
+  .paper.raw-prose {
+    padding: 20px 18px;
+  }
+
+  .paper.plain .content {
+    font-size: 16px;
+  }
+
+  .image-box {
+    padding: 14px;
+  }
+
+  .panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 65dvh;
+    z-index: 30;
+    padding: 10px 12px calc(40px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border-strong);
+    border-radius: var(--radius) var(--radius) 0 0;
+    box-shadow: 0 -6px 24px rgba(80, 60, 30, 0.15);
+    transform: translateY(100%);
+    visibility: hidden;
+    transition: transform 0.2s, visibility 0s 0.2s;
+  }
+
+  .panel.open {
+    transform: none;
+    visibility: visible;
+    transition: transform 0.2s;
+  }
+
+  .panel-tabs {
+    position: sticky;
+    top: -10px;
+    z-index: 1;
+    margin: -10px -12px 4px;
+    padding: 10px 12px 6px;
+    background: var(--bg);
+  }
+
+  .sheet-close {
+    display: inline-flex;
+    position: absolute;
+    top: 10px;
+    right: 8px;
+  }
+
+  .sheet-toggle {
+    display: inline-flex;
+    position: fixed;
+    right: 14px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    z-index: 20;
+    box-shadow: var(--shadow);
+  }
+}
+
+.sheet-count {
+  background: #fffaf2;
+  color: var(--accent-text);
+  border-radius: 999px;
+  min-width: 20px;
+  padding: 0 6px;
+  font-size: 12px;
+  text-align: center;
+}
+
+.bubble.docked {
+  left: 50%;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  padding: 4px;
+}
+
+.bubble.docked button {
+  height: 40px;
+  padding: 0 16px 0 12px;
+  font-size: 14px;
 }
 </style>

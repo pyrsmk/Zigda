@@ -205,4 +205,30 @@ label {
     grid-template-rows: minmax(400px, 1fr) auto;
   }
 }
+
+@media (max-width: 760px) {
+  .edit-view {
+    height: auto;
+    min-height: 100%;
+  }
+
+  .edit-head {
+    padding: 10px 14px;
+    gap: 10px;
+  }
+
+  .workspace {
+    grid-template-rows: auto auto;
+    gap: 14px;
+    padding: 12px 10px 24px;
+  }
+
+  .editor-area {
+    height: 55dvh;
+  }
+
+  .submit {
+    padding: 16px;
+  }
+}
 </style>

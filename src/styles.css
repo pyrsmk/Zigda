@@ -380,6 +380,7 @@ a {
   background: var(--hl);
   border-radius: 3px;
   cursor: pointer;
+  scroll-margin-top: 16px;
   transition: background 0.15s;
 }
 
@@ -448,4 +449,35 @@ a {
 
 .hljs-deletion {
   color: var(--danger);
+}
+
+@media (max-width: 760px) {
+  .page {
+    padding: 18px 14px 50px;
+  }
+
+  .page h1 {
+    font-size: 21px;
+  }
+
+  .prose {
+    font-size: 16px;
+  }
+}
+
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select,
+  .cm-editor .cm-content {
+    font-size: 16px !important;
+  }
+
+  .btn.small {
+    padding: 8px 13px;
+  }
+
+  .segmented button {
+    padding: 7px 13px;
+  }
 }

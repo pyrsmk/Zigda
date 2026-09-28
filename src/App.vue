@@ -5,11 +5,12 @@ import { logout, refreshOverview, session } from './session.js'
 import FileTree from './components/FileTree.vue'
 import Avatar from './components/Avatar.vue'
 import Icon from './components/Icon.vue'
+import { compact } from './lib/viewport.js'
 
 const route = useRoute()
 const router = useRouter()
 const chrome = computed(() => session.user && !route.meta.public && !route.meta.bare)
-const sidebarOpen = ref(true)
+const sidebarOpen = ref(!compact.value)
 const menuOpen = ref(false)
 
 let timer
@@ -26,6 +27,13 @@ onBeforeUnmount(() => {
   clearInterval(timer)
   document.removeEventListener('visibilitychange', poll)
 })
+
+watch(compact, (value) => (sidebarOpen.value = !value))
+
+watch(
+  () => route.fullPath,
+  () => compact.value && (sidebarOpen.value = false),
+)
 
 watch(
   () => session.user && session.repo,
@@ -80,6 +88,7 @@ async function signOut() {
         </div>
       </div>
     </header>
+    <div v-if="compact && sidebarOpen" class="backdrop" @click="sidebarOpen = false"></div>
     <aside class="sidebar">
       <FileTree v-if="session.repo" />
     </aside>
@@ -226,21 +235,50 @@ nav {
 
 @media (max-width: 760px) {
   .shell {
-    grid-template-columns: 0 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .shell:not(.collapsed) {
-    grid-template-columns: 260px 1fr;
+  .topbar {
+    padding: 0 10px;
+    gap: 8px;
+  }
+
+  .nav-link {
+    padding: 8px 10px;
   }
 
   .toggle {
     display: inline-flex;
+    padding: 8px 10px;
   }
 
   .repo,
   .nav-link span:not(.badge),
   .brand span {
     display: none;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 58px;
+    bottom: 0;
+    left: 0;
+    width: min(300px, 85vw);
+    z-index: 40;
+    box-shadow: var(--shadow);
+    transition: transform 0.2s;
+  }
+
+  .shell.collapsed .sidebar {
+    transform: translateX(-100%);
+    box-shadow: none;
+  }
+
+  .backdrop {
+    position: fixed;
+    inset: 58px 0 0;
+    background: rgba(61, 51, 38, 0.25);
+    z-index: 35;
   }
 }
 </style>

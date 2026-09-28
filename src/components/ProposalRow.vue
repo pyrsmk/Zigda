@@ -98,4 +98,29 @@ const updated = computed(() => new Date(Math.max(...versions.value.map((v) => ne
 .kind {
   font-weight: 700;
 }
+
+@media (max-width: 760px) {
+  .row {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding: 12px;
+  }
+
+  .text {
+    flex-basis: calc(100% - 46px);
+  }
+
+  .summary,
+  .meta {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .text + .badge,
+  .text + .progress {
+    margin-left: 46px;
+  }
+}
 </style>
