@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { api } from '../api.js'
 import { displayName, repoChanged } from '../session.js'
 import { ACTIONS, STATUS, ago, fullDate, proposalTitle } from '../lib/format.js'
-import { isProse } from '../../shared/files.js'
+import { imageType, isProse } from '../../shared/files.js'
 import ThreadCard from '../components/ThreadCard.vue'
 import DiffView from '../components/DiffView.vue'
 import Avatar from '../components/Avatar.vue'
@@ -16,6 +16,8 @@ const error = ref('')
 const p = computed(() => thread.value?.proposal)
 const prose = computed(() => (p.value ? isProse(p.value.path) : false))
 const before = computed(() => p.value?.base_content ?? '')
+const binary = computed(() => p.value?.action === 'delete' && p.value.base_content === null)
+const preview = computed(() => binary.value && p.value.status !== 'applied' && imageType(p.value.path))
 const after = computed(() => (p.value?.action === 'delete' ? '' : (p.value?.content ?? '')))
 
 async function load() {
@@ -70,7 +72,10 @@ function onApplied() {
             <span v-if="p.action === 'delete'" class="muted">The file will be deleted from the repository.</span>
             <span v-else-if="p.action === 'create'" class="muted">New file.</span>
           </div>
-          <DiffView :before="before" :after="after" :prose="prose" />
+          <div v-if="preview" class="image-box">
+            <img :src="`/api/raw?path=${encodeURIComponent(p.path)}&v=${p.base_sha}`" :alt="p.path" />
+          </div>
+          <DiffView v-else-if="!binary" :before="before" :after="after" :prose="prose" />
         </section>
         <div class="discussion">
           <ThreadCard :thread="thread" active @updated="thread = $event" @applied="onApplied" />
@@ -144,6 +149,21 @@ function onApplied() {
 
 .kind {
   font-weight: 800;
+}
+
+.image-box {
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+  background: repeating-conic-gradient(var(--surface-2) 0 25%, var(--surface) 0 50%) 0 0 / 22px 22px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.image-box img {
+  max-width: 100%;
+  max-height: 60vh;
+  border-radius: 6px;
 }
 
 .discussion {

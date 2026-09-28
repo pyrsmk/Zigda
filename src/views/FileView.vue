@@ -84,7 +84,6 @@ const visible = computed(() =>
 )
 
 const resolvedCount = computed(() => threads.value.filter((t) => t.status === 'resolved').length)
-const tab = computed(() => (text.value === null ? 'history' : panel.value))
 const openCount = computed(() => threads.value.filter((t) => t.status === 'open').length)
 
 const html = computed(() => {
@@ -347,7 +346,7 @@ const crumbs = computed(() => props.path.split('/'))
       </RouterLink>
     </div>
 
-    <div class="body">
+    <div class="body" :class="{ single: text === null }">
       <section ref="contentArea" class="content-area" @scroll="onContentScroll">
         <div v-if="loading" class="spinner"></div>
         <div v-else-if="error" class="error">{{ error }}</div>
@@ -370,13 +369,13 @@ const crumbs = computed(() => props.path.split('/'))
         </div>
       </section>
 
-      <aside v-if="text !== null || image" class="panel" :class="{ open: sheetOpen }">
+      <aside v-if="text !== null" class="panel" :class="{ open: sheetOpen }">
         <div class="panel-tabs">
           <div class="segmented">
-            <button v-if="text !== null" :class="{ active: tab === 'threads' }" @click="panel = 'threads'">
+            <button :class="{ active: panel === 'threads' }" @click="panel = 'threads'">
               <Icon name="message" :size="13" /> Discussions
             </button>
-            <button :class="{ active: tab === 'history' }" @click="panel = 'history'">
+            <button :class="{ active: panel === 'history' }" @click="panel = 'history'">
               <Icon name="history" :size="13" /> History
             </button>
           </div>
@@ -384,7 +383,7 @@ const crumbs = computed(() => props.path.split('/'))
             <Icon name="x" :size="15" />
           </button>
         </div>
-        <template v-if="tab === 'threads'">
+        <template v-if="panel === 'threads'">
           <Composer
             v-if="draft"
             :draft="draft"
@@ -394,7 +393,7 @@ const crumbs = computed(() => props.path.split('/'))
             @cancel="draft = null"
             @created="onCreated"
           />
-          <p v-if="!visible.length && !draft && text !== null" class="hint faint">
+          <p v-if="!visible.length && !draft" class="hint faint">
             Select a passage of the text to comment on it or modify it.
           </p>
           <div
@@ -423,15 +422,12 @@ const crumbs = computed(() => props.path.split('/'))
     </div>
 
     <button
-      v-if="(text !== null || image) && !sheetOpen && !bubble"
+      v-if="text !== null && !sheetOpen && !bubble"
       class="btn primary sheet-toggle"
       @click="sheetOpen = true"
     >
-      <template v-if="text !== null">
-        <Icon name="message" :size="15" /> Discussions
-        <span v-if="openCount" class="sheet-count">{{ openCount }}</span>
-      </template>
-      <template v-else><Icon name="history" :size="15" /> History</template>
+      <Icon name="message" :size="15" /> Discussions
+      <span v-if="openCount" class="sheet-count">{{ openCount }}</span>
     </button>
 
     <Teleport to="body">
@@ -554,6 +550,10 @@ const crumbs = computed(() => props.path.split('/'))
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
   min-height: 0;
+}
+
+.body.single {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .content-area {
