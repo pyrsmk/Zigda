@@ -27,7 +27,17 @@ const explanation = ref('')
 const passage = computed(() => props.thread.kind === 'passage')
 const versions = computed(() => props.thread.proposals)
 const openVersions = computed(() => versions.value.filter(isOpen))
-const shown = computed(() => (props.compact && !props.active ? openVersions.value : versions.value))
+const expanded = computed(() => !props.compact || props.active)
+const timeline = computed(() => {
+  const ids = new Set(versions.value.map((p) => p.id))
+  const announced = (m) => m.kind === 'event' && m.body.startsWith('proposed@') && ids.has(m.body.split('@')[1])
+  return [
+    ...versions.value.map((p) => ({ key: `v${p.id}`, at: p.created_at, version: p })),
+    ...props.thread.messages
+      .filter((m) => m !== first.value && !announced(m))
+      .map((m) => ({ key: `m${m.id}`, at: m.created_at, message: m })),
+  ].sort((a, b) => new Date(a.at) - new Date(b.at))
+})
 const numbered = computed(() => passage.value && versions.value.length > 1)
 const quote = computed(() => props.thread.anchor?.quote ?? '')
 const canPropose = computed(
@@ -110,45 +120,57 @@ function number(p) {
     <PassageQuote v-if="passage" :anchor="thread.anchor" :code="!prose" :orphan="orphan && !applied" />
     <p v-if="orphan && !applied" class="faint orphan-note">This passage has since been changed and no longer appears in the text.</p>
 
-    <p v-if="first && (!compact || active)" class="body first">{{ first.body }}</p>
+    <p v-if="first && expanded" class="body first">{{ first.body }}</p>
 
-    <VersionCard
-      v-for="p in shown"
-      :key="p.id"
-      :proposal="p"
-      :number="number(p)"
-      :before="quote"
-      :prose="prose"
-      :diff="passage"
-      :actions="active"
-      :busy="busy"
-      :run="run"
-    />
-    <p v-if="compact && !active && versions.length > shown.length" class="faint more">
-      {{ versions.length - shown.length }} closed version{{ versions.length - shown.length > 1 ? 's' : '' }}
-    </p>
-
-    <div v-if="!compact || active" class="messages">
-      <template v-for="message in thread.messages" :key="message.id">
-        <p v-if="message.kind === 'event' && SYSTEM_EVENTS[message.body]" class="event">
-          {{ SYSTEM_EVENTS[message.body] }}
-          <span class="faint">· {{ ago(message.created_at) }}</span>
+    <div v-if="expanded" class="messages">
+      <template v-for="item in timeline" :key="item.key">
+        <VersionCard
+          v-if="item.version"
+          :proposal="item.version"
+          :number="number(item.version)"
+          :before="quote"
+          :prose="prose"
+          :diff="passage"
+          :actions="active"
+          :busy="busy"
+          :run="run"
+        />
+        <p v-else-if="item.message.kind === 'event' && SYSTEM_EVENTS[item.message.body]" class="event">
+          {{ SYSTEM_EVENTS[item.message.body] }}
+          <span class="faint">· {{ ago(item.message.created_at) }}</span>
         </p>
-        <p v-else-if="message.kind === 'event'" class="event">
-          <strong>{{ displayName(message.author) }}</strong> {{ eventLabel(message.body, versions) }}
-          <span class="faint">· {{ ago(message.created_at) }}</span>
+        <p v-else-if="item.message.kind === 'event'" class="event">
+          <strong>{{ displayName(item.message.author) }}</strong> {{ eventLabel(item.message.body, versions) }}
+          <span class="faint">· {{ ago(item.message.created_at) }}</span>
         </p>
-        <div v-else-if="message !== first" class="message">
+        <div v-else class="message">
           <div class="message-head">
-            <Avatar :user="message.author" :size="20" />
-            <strong>{{ displayName(message.author) }}</strong>
-            <span class="faint when" :title="fullDate(message.created_at)">{{ ago(message.created_at) }}</span>
+            <Avatar :user="item.message.author" :size="20" />
+            <strong>{{ displayName(item.message.author) }}</strong>
+            <span class="faint when" :title="fullDate(item.message.created_at)">{{ ago(item.message.created_at) }}</span>
           </div>
-          <p class="body">{{ message.body }}</p>
+          <p class="body">{{ item.message.body }}</p>
         </div>
       </template>
     </div>
-    <p v-else-if="thread.messages.length > 1" class="faint more">{{ thread.messages.length }} messages</p>
+    <template v-else>
+      <VersionCard
+        v-for="p in openVersions"
+        :key="p.id"
+        :proposal="p"
+        :number="number(p)"
+        :before="quote"
+        :prose="prose"
+        :diff="passage"
+        :actions="active"
+        :busy="busy"
+        :run="run"
+      />
+      <p v-if="versions.length > openVersions.length" class="faint more">
+        {{ versions.length - openVersions.length }} closed version{{ versions.length - openVersions.length > 1 ? 's' : '' }}
+      </p>
+      <p v-if="thread.messages.length > 1" class="faint more">{{ thread.messages.length }} messages</p>
+    </template>
 
     <div v-if="error" class="error small">{{ error }}</div>
 
