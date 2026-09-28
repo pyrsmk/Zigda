@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { diffLines, diffWordsWithSpace } from 'diff'
+import { diffArrays, diffLines, diffWordsWithSpace } from 'diff'
 
 const props = defineProps({
   before: { type: String, default: '' },
@@ -9,7 +9,94 @@ const props = defineProps({
   context: { type: Number, default: 3 },
 })
 
-const words = computed(() => (props.prose ? diffWordsWithSpace(props.before ?? '', props.after ?? '') : []))
+function sentences(text) {
+  const out = []
+  let start = 0
+  for (const match of text.matchAll(/[.!?…]+(?=\s|$)\s*|\n+/g)) {
+    const end = match.index + match[0].length
+    if (end > start) out.push(text.slice(start, end))
+    start = end
+  }
+  if (start < text.length) out.push(text.slice(start))
+  return out
+}
+
+function hunks(parts) {
+  let count = 0
+  let changing = false
+  for (const part of parts) {
+    if (part.added || part.removed) {
+      if (!changing) count++
+      changing = true
+    } else if (part.value.trim()) {
+      changing = false
+    }
+  }
+  return count
+}
+
+function group(parts) {
+  const out = []
+  let hunk = []
+  const close = () => {
+    const tail = []
+    while (hunk.length && !hunk.at(-1).added && !hunk.at(-1).removed) tail.unshift(hunk.pop())
+    const removed = hunk.filter((p) => !p.added).map((p) => p.value).join('')
+    const added = hunk.filter((p) => !p.removed).map((p) => p.value).join('')
+    if (removed) out.push({ removed: true, value: removed })
+    if (added) out.push({ added: true, value: added })
+    out.push(...tail)
+    hunk = []
+  }
+  for (const part of parts) {
+    if (part.added || part.removed || (hunk.length && !part.value.trim())) {
+      hunk.push(part)
+    } else {
+      close()
+      out.push(part)
+    }
+  }
+  close()
+  return out
+}
+
+function refine(removed, added) {
+  const parts = diffWordsWithSpace(removed, added)
+  if (hunks(parts) <= 1) return group(parts)
+  return [
+    { removed: true, value: removed },
+    { added: true, value: added },
+  ]
+}
+
+const words = computed(() => {
+  if (!props.prose) return []
+  const out = []
+  let removed = []
+  let added = []
+  const flush = () => {
+    if (removed.length && added.length) {
+      if (removed.length === added.length) removed.forEach((sentence, i) => out.push(...refine(sentence, added[i])))
+      else out.push(...refine(removed.join(''), added.join('')))
+    } else if (removed.length) {
+      out.push({ removed: true, value: removed.join('') })
+    } else if (added.length) {
+      out.push({ added: true, value: added.join('') })
+    }
+    removed = []
+    added = []
+  }
+  for (const part of diffArrays(sentences(props.before ?? ''), sentences(props.after ?? ''))) {
+    if (part.removed) removed.push(...part.value)
+    else if (part.added) added.push(...part.value)
+    else {
+      flush()
+      out.push({ value: part.value.join('') })
+    }
+  }
+  flush()
+  return out
+})
 
 const words_trimmed = computed(() => {
   const parts = words.value
