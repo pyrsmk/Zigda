@@ -119,3 +119,7 @@ Run `run help` to list all available tasks.
 | `GITHUB_API_URL` | GitHub API base URL (default: `https://api.github.com`) |
 
 Useful to target GitHub Enterprise or a mock GitHub server.
+
+## License
+
+This is released under the [Don't Be A Dick](https://dont-be-a-dick.animi.st/) license.
