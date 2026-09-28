@@ -107,7 +107,7 @@ export async function writeFile(ctx, path, { content, sha, message, author }) {
       ...(sha ? { sha } : null),
     },
   })
-  return data.commit.sha
+  return { commitSha: data.commit.sha, sha: data.content.sha }
 }
 
 export async function deleteFile(ctx, path, { sha, message, author }) {

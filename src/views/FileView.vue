@@ -4,8 +4,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api.js'
 import { refreshOverview, repoChanged, session, displayName } from '../session.js'
 import { codeTree, markdownTree, plainTree, renderHtml, selectionRange } from '../lib/render.js'
-import { ago } from '../lib/format.js'
-import { makeAnchor, locate } from '../../shared/anchor.js'
+import { ago, isOpen } from '../lib/format.js'
+import { makeAnchor, locate, overlaps } from '../../shared/anchor.js'
 import { imageType, isMarkdown, isProse, language } from '../../shared/files.js'
 import ThreadCard from '../components/ThreadCard.vue'
 import Composer from '../components/Composer.vue'
@@ -25,9 +25,11 @@ const proposals = ref([])
 const activeId = ref(null)
 const draft = ref(null)
 const bubble = ref(null)
+const bubbleEl = ref(null)
 const panel = ref('threads')
 const showResolved = ref(false)
 const content = ref(null)
+const contentArea = ref(null)
 const confirmDelete = ref(false)
 const deleting = ref(false)
 
@@ -88,7 +90,7 @@ const html = computed(() => {
     .map(({ thread, range }) => ({
       ...range,
       id: thread.id,
-      tone: thread.id === activeId.value ? 'active' : thread.kind,
+      tone: thread.id === activeId.value ? 'active' : thread.proposals.some(isOpen) ? 'suggestion' : 'passage',
     }))
   if (draft.value) ranges.push({ ...draft.value.range, id: 'draft', tone: 'draft' })
   return renderHtml(tree.value, ranges)
@@ -145,11 +147,13 @@ function poll() {
 onMounted(() => {
   timer = setInterval(poll, 15_000)
   document.addEventListener('selectionchange', onSelectionChange)
+  document.addEventListener('mousedown', onDocumentMouseDown)
 })
 
 onBeforeUnmount(() => {
   clearInterval(timer)
   document.removeEventListener('selectionchange', onSelectionChange)
+  document.removeEventListener('mousedown', onDocumentMouseDown)
 })
 
 function trimRange(start, end) {
@@ -159,20 +163,52 @@ function trimRange(start, end) {
   return end > start ? { start, end } : null
 }
 
+function takenBy(range) {
+  return placed.value.find(
+    ({ thread, range: other }) => thread.status === 'open' && other && overlaps(other, range),
+  )?.thread
+}
+
+async function openBubble(range, line) {
+  bubble.value = {
+    ...range,
+    taken: takenBy(range)?.id ?? null,
+    top: (line.top + line.bottom) / 2 - 12,
+    left: line.right + 6,
+  }
+  await nextTick()
+  const limit = contentArea.value.getBoundingClientRect().right - 8
+  const width = bubbleEl.value.offsetWidth
+  if (bubble.value.left + width > limit) {
+    bubble.value.left = Math.min(line.right, limit) - width
+    bubble.value.top = line.top - 28
+  }
+}
+
 function onMouseUp() {
   const sel = content.value && selectionRange(content.value)
   if (!sel) return
   const range = trimRange(sel.start, sel.end)
   if (!range) return
-  bubble.value = { ...range, top: sel.rect.top - 46, left: sel.rect.left + sel.rect.width / 2 }
+  openBubble(range, sel.line)
 }
 
 function onSelectionChange() {
   if (bubble.value && window.getSelection()?.isCollapsed) bubble.value = null
 }
 
-function startDraft(kind) {
-  const { start, end } = bubble.value
+function onDocumentMouseDown(event) {
+  if (bubble.value && !event.target.closest('.bubble')) bubble.value = null
+}
+
+function openTaken() {
+  const id = bubble.value.taken
+  bubble.value = null
+  window.getSelection()?.removeAllRanges()
+  select(id)
+}
+
+function startDraft(kind, { start, end }) {
   draft.value = { kind, range: { start, end }, anchor: makeAnchor(text.value, start, end) }
   bubble.value = null
   activeId.value = null
@@ -255,9 +291,6 @@ const crumbs = computed(() => props.path.split('/'))
             <Icon name="code" :size="13" /> Raw text
           </button>
         </div>
-        <RouterLink v-if="text !== null" :to="{ name: 'edit', params: { path: path.split('/') } }" class="btn primary small">
-          <Icon name="pencil" :size="14" /> Edit
-        </RouterLink>
         <button v-if="file" class="btn ghost small" title="Propose deletion" @click="confirmDelete = !confirmDelete">
           <Icon name="trash" :size="15" />
         </button>
@@ -291,7 +324,7 @@ const crumbs = computed(() => props.path.split('/'))
     </div>
 
     <div class="body">
-      <section class="content-area" @scroll="bubble = null">
+      <section ref="contentArea" class="content-area" @scroll="bubble = null">
         <div v-if="loading" class="spinner"></div>
         <div v-else-if="error" class="error">{{ error }}</div>
         <div v-else-if="image" class="image-box">
@@ -335,7 +368,7 @@ const crumbs = computed(() => props.path.split('/'))
             @created="onCreated"
           />
           <p v-if="!visible.length && !draft && text !== null" class="hint faint">
-            Select a passage of the text to comment on it or suggest a change.
+            Select a passage of the text to comment on it or modify it.
           </p>
           <div
             v-for="{ thread, range } in visible"
@@ -363,9 +396,20 @@ const crumbs = computed(() => props.path.split('/'))
     </div>
 
     <Teleport to="body">
-      <div v-if="bubble" class="bubble" :style="{ top: `${bubble.top}px`, left: `${bubble.left}px` }" @mousedown.prevent>
-        <button @click="startDraft('comment')"><Icon name="message" :size="14" /> Comment</button>
-        <button @click="startDraft('suggestion')"><Icon name="sparkle" :size="14" /> Suggest a change</button>
+      <div
+        v-if="bubble"
+        ref="bubbleEl"
+        class="bubble"
+        :style="{ top: `${bubble.top}px`, left: `${bubble.left}px` }"
+        @mousedown.prevent
+      >
+        <button v-if="bubble.taken" @click="openTaken">
+          <Icon name="message" :size="12" /> Already under discussion: open it
+        </button>
+        <template v-else>
+          <button @click="startDraft('comment', bubble)"><Icon name="message" :size="12" /> Comment</button>
+          <button @click="startDraft('version', bubble)"><Icon name="pencil" :size="12" /> Modify</button>
+        </template>
       </div>
     </Teleport>
   </div>
@@ -588,10 +632,9 @@ const crumbs = computed(() => props.path.split('/'))
 
 .bubble {
   position: fixed;
-  transform: translateX(-50%);
   display: flex;
   gap: 2px;
-  padding: 4px;
+  padding: 2px;
   background: var(--text);
   border-radius: 999px;
   box-shadow: var(--shadow);
@@ -601,12 +644,14 @@ const crumbs = computed(() => props.path.split('/'))
 .bubble button {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
+  height: 20px;
   color: #fbf4e6;
-  padding: 6px 12px;
+  padding: 0 9px 0 6px;
   border-radius: 999px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .bubble button:hover {

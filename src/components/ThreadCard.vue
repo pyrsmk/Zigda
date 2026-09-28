@@ -2,10 +2,11 @@
 import { computed, ref } from 'vue'
 import { api } from '../api.js'
 import { displayName, refreshOverview, session } from '../session.js'
-import { ago, eventLabel, fullDate, STATUS, CONFLICTS } from '../lib/format.js'
+import { SYSTEM_EVENTS, ago, eventLabel, fullDate, isOpen } from '../lib/format.js'
 import Avatar from './Avatar.vue'
-import DiffView from './DiffView.vue'
 import Icon from './Icon.vue'
+import PassageQuote from './PassageQuote.vue'
+import VersionCard from './VersionCard.vue'
 
 const props = defineProps({
   thread: Object,
@@ -19,30 +20,50 @@ const emit = defineEmits(['updated', 'applied', 'select'])
 const reply = ref('')
 const busy = ref(false)
 const error = ref('')
-const editing = ref(false)
-const replacement = ref('')
+const proposing = ref(false)
+const wording = ref('')
+const explanation = ref('')
 
-const proposal = computed(() => props.thread.proposal)
-const mine = computed(() => proposal.value?.author?.id === session.user.id)
-const openProposal = computed(() => ['pending', 'conflict'].includes(proposal.value?.status))
-const approvedByMe = computed(() => proposal.value?.approved_by.some((u) => u.id === session.user.id))
-const expectedCount = computed(() => (proposal.value ? proposal.value.approved_by.length + proposal.value.waiting_for.length : 0))
-const first = computed(() => props.thread.messages[0])
+const passage = computed(() => props.thread.kind === 'passage')
+const versions = computed(() => props.thread.proposals)
+const openVersions = computed(() => versions.value.filter(isOpen))
+const shown = computed(() => (props.compact && !props.active ? openVersions.value : versions.value))
+const numbered = computed(() => passage.value && versions.value.length > 1)
+const quote = computed(() => props.thread.anchor?.quote ?? '')
+const canPropose = computed(
+  () =>
+    passage.value &&
+    props.thread.status === 'open' &&
+    !openVersions.value.some((p) => p.author?.id === session.user.id),
+)
+const applied = computed(() => versions.value.some((p) => p.status === 'applied'))
+const first = computed(() => {
+  const message = props.thread.messages[0]
+  const opening =
+    message?.kind === 'text' &&
+    message.author?.id === props.thread.author?.id &&
+    new Date(message.created_at) - new Date(props.thread.created_at) < 5000
+  return opening ? message : null
+})
 
 async function run(action) {
   busy.value = true
   error.value = ''
   try {
     const thread = await action()
-    if (thread?.proposal?.status === 'applied' && proposal.value?.status !== 'applied') emit('applied')
+    const before = versions.value.filter((p) => p.status === 'applied').length
+    if (thread?.proposals.filter((p) => p.status === 'applied').length > before) emit('applied')
     if (thread) emit('updated', thread)
     refreshOverview()
     return true
   } catch (err) {
     error.value = err.message
-    const fresh = await api.threads(props.thread.path).catch(() => null)
+    const fresh = await (passage.value ? api.threads(props.thread.path) : api.proposals({ path: props.thread.path })).catch(
+      () => null,
+    )
     const updated = fresh?.find((t) => t.id === props.thread.id)
     if (updated) emit('updated', updated)
+    if (err.status === 409) emit('applied')
     return false
   } finally {
     busy.value = false
@@ -57,74 +78,68 @@ async function send() {
 
 const setStatus = (status) => run(() => api.setThreadStatus(props.thread.id, status))
 
-const decide = (action) => run(() => api.decide(proposal.value.id, action))
-
-function startEdit() {
-  replacement.value = proposal.value.content
-  editing.value = true
+function startProposing() {
+  wording.value = openVersions.value.at(-1)?.content ?? quote.value
+  explanation.value = ''
+  proposing.value = true
 }
 
-async function saveEdit() {
-  if (await run(() => api.revise(proposal.value.id, { content: replacement.value }))) editing.value = false
+async function propose() {
+  const input = { content: wording.value, body: explanation.value }
+  if (await run(() => api.addVersion(props.thread.id, input))) proposing.value = false
+}
+
+function number(p) {
+  return numbered.value ? versions.value.indexOf(p) + 1 : null
 }
 </script>
 
 <template>
   <article
     class="thread card"
-    :class="{ active, resolved: thread.status === 'resolved', suggestion: thread.kind === 'suggestion', code: !prose }"
+    :class="{ active, resolved: thread.status === 'resolved', proposing: openVersions.length, code: !prose }"
     @click="emit('select', thread.id)"
   >
     <header>
       <Avatar :user="thread.author" :size="24" />
       <strong>{{ displayName(thread.author) }}</strong>
       <span class="faint when" :title="fullDate(thread.created_at)">{{ ago(thread.created_at) }}</span>
-      <span v-if="proposal" class="badge" :class="proposal.status">{{ STATUS[proposal.status] }}</span>
-      <span v-else-if="thread.status === 'resolved'" class="badge resolved">Resolved</span>
+      <span v-if="passage && thread.status === 'resolved'" class="badge resolved">Closed</span>
     </header>
 
-    <blockquote v-if="thread.kind === 'comment' && thread.anchor" class="quote" :class="{ orphan }">
-      {{ thread.anchor.quote }}
-    </blockquote>
-    <div v-if="thread.kind === 'suggestion'" class="suggestion-body">
-      <div class="label"><Icon name="sparkle" :size="13" /> Suggests replacing</div>
-      <div v-if="!editing" class="diff-box">
-        <DiffView :before="thread.anchor.quote" :after="proposal.content" prose :class="{ mono: !prose }" />
-      </div>
-      <div v-else class="edit-box" @click.stop>
-        <textarea v-model="replacement" rows="4"></textarea>
-        <div class="row-actions">
-          <button class="btn ghost small" @click="editing = false">Cancel</button>
-          <button class="btn primary small" :disabled="busy" @click="saveEdit">Save</button>
-        </div>
-      </div>
-    </div>
-    <p v-if="orphan" class="faint orphan-note">This passage has since been changed and no longer appears in the text.</p>
-    <p v-if="proposal?.status === 'conflict'" class="notice small">{{ CONFLICTS[proposal.error] }}</p>
+    <PassageQuote v-if="passage" :anchor="thread.anchor" :code="!prose" :orphan="orphan && !applied" />
+    <p v-if="orphan && !applied" class="faint orphan-note">This passage has since been changed and no longer appears in the text.</p>
 
-    <div v-if="proposal && openProposal && expectedCount" class="approvals">
-      <span class="approvals-count">
-        {{ proposal.approved_by.length }}/{{ expectedCount }} approval{{ expectedCount > 1 ? 's' : '' }}
-      </span>
-      <span class="people">
-        <span v-for="u in proposal.approved_by" :key="u.id" class="person done" :title="`${displayName(u)} approved`">
-          <Avatar :user="u" :size="22" />
-          <Icon name="check" :size="11" class="tick" />
-        </span>
-        <span v-for="u in proposal.waiting_for" :key="u.id" class="person" :title="`Waiting for ${displayName(u)}`">
-          <Avatar :user="u" :size="22" />
-        </span>
-      </span>
-    </div>
+    <p v-if="first && (!compact || active)" class="body first">{{ first.body }}</p>
+
+    <VersionCard
+      v-for="p in shown"
+      :key="p.id"
+      :proposal="p"
+      :number="number(p)"
+      :before="quote"
+      :prose="prose"
+      :diff="passage"
+      :actions="active"
+      :busy="busy"
+      :run="run"
+    />
+    <p v-if="compact && !active && versions.length > shown.length" class="faint more">
+      {{ versions.length - shown.length }} closed version{{ versions.length - shown.length > 1 ? 's' : '' }}
+    </p>
 
     <div v-if="!compact || active" class="messages">
       <template v-for="message in thread.messages" :key="message.id">
-        <p v-if="message.kind === 'event'" class="event">
-          <strong>{{ displayName(message.author) }}</strong> {{ eventLabel(message.body) }}
+        <p v-if="message.kind === 'event' && SYSTEM_EVENTS[message.body]" class="event">
+          {{ SYSTEM_EVENTS[message.body] }}
           <span class="faint">· {{ ago(message.created_at) }}</span>
         </p>
-        <div v-else class="message" :class="{ first: message === first }">
-          <div v-if="message !== first" class="message-head">
+        <p v-else-if="message.kind === 'event'" class="event">
+          <strong>{{ displayName(message.author) }}</strong> {{ eventLabel(message.body, versions) }}
+          <span class="faint">· {{ ago(message.created_at) }}</span>
+        </p>
+        <div v-else-if="message !== first" class="message">
+          <div class="message-head">
             <Avatar :user="message.author" :size="20" />
             <strong>{{ displayName(message.author) }}</strong>
             <span class="faint when" :title="fullDate(message.created_at)">{{ ago(message.created_at) }}</span>
@@ -138,33 +153,22 @@ async function saveEdit() {
     <div v-if="error" class="error small">{{ error }}</div>
 
     <footer v-if="active" @click.stop>
-      <div v-if="proposal && openProposal" class="decision">
-        <template v-if="!mine">
-          <span v-if="approvedByMe" class="badge applied"><Icon name="check" :size="12" /> You approved</span>
-          <button
-            v-else
-            class="btn ok small"
-            :disabled="busy || proposal.status === 'conflict'"
-            @click="decide('approve')"
-          >
-            <Icon name="check" :size="14" /> Approve
+      <form v-if="proposing" class="propose" @submit.prevent="propose">
+        <label class="faint">Replace with</label>
+        <textarea v-model="wording" rows="4" class="wording"></textarea>
+        <label class="faint">Explanation (optional)</label>
+        <textarea v-model="explanation" rows="2" placeholder="Why this version?"></textarea>
+        <div class="row-actions">
+          <button type="button" class="btn ghost small" @click="proposing = false">Cancel</button>
+          <button class="btn primary small" :disabled="busy || wording === quote">
+            <Icon name="sparkle" :size="14" /> Propose
           </button>
-          <button class="btn danger small" :disabled="busy" @click="decide('reject')">Reject</button>
-        </template>
-        <template v-else>
-          <RouterLink
-            v-if="thread.kind === 'proposal' && proposal.action !== 'delete'"
-            :to="{ name: 'edit', params: { path: proposal.path.split('/') }, query: { proposal: proposal.id } }"
-            class="btn small"
-          >
-            <Icon name="pencil" :size="14" /> {{ proposal.status === 'conflict' ? 'Rework' : 'Edit' }}
-          </RouterLink>
-          <button v-else-if="thread.kind === 'suggestion' && !editing" class="btn small" :disabled="busy" @click="startEdit">
-            <Icon name="pencil" :size="14" /> Edit
-          </button>
-          <button class="btn ghost small" :disabled="busy" @click="decide('withdraw')">Withdraw</button>
-        </template>
-      </div>
+        </div>
+      </form>
+      <button v-else-if="canPropose" class="btn small propose-button" :disabled="busy" @click="startProposing">
+        <Icon name="pencil" :size="14" />
+        {{ versions.length ? 'Propose another version' : 'Modify' }}
+      </button>
       <form class="reply" @submit.prevent="send">
         <textarea
           v-model="reply"
@@ -174,17 +178,23 @@ async function saveEdit() {
           @keydown.enter.ctrl.prevent="send"
         ></textarea>
         <div class="row-actions">
-          <template v-if="thread.kind === 'comment'">
+          <template v-if="passage">
             <button
-              v-if="thread.status === 'open'"
+              v-if="thread.status === 'open' && !openVersions.length"
               type="button"
               class="btn ghost small"
               :disabled="busy"
               @click="setStatus('resolved')"
             >
-              <Icon name="check" :size="14" /> Resolve
+              <Icon name="check" :size="14" /> Close
             </button>
-            <button v-else type="button" class="btn ghost small" :disabled="busy" @click="setStatus('open')">
+            <button
+              v-else-if="thread.status === 'resolved' && !applied"
+              type="button"
+              class="btn ghost small"
+              :disabled="busy"
+              @click="setStatus('open')"
+            >
               Reopen
             </button>
           </template>
@@ -232,114 +242,15 @@ header .badge {
   margin-left: auto;
 }
 
-.quote {
-  margin: 10px 0 4px;
-  padding: 3px 10px;
-  border-left: 3px solid var(--hl-strong);
-  color: var(--text-dim);
-  font-family: var(--serif);
-  font-size: 14px;
-  max-height: 4.8em;
-  overflow: hidden;
-  white-space: pre-wrap;
-}
-
-.quote.orphan {
-  text-decoration: line-through;
-}
-
-.suggestion-body {
-  margin-top: 10px;
-}
-
-.label {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  font-weight: 800;
-  color: #5b7d3f;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  margin-bottom: 5px;
-}
-
-.code .quote,
-.diff-box .mono,
-.code .edit-box textarea {
-  font-family: var(--mono);
-  font-size: 12.5px;
-  tab-size: 4;
-}
-
-.diff-box {
-  background: var(--surface-2);
-  border-radius: var(--radius-sm);
-  padding: 8px 11px;
-}
-
-.diff-box :deep(.words) {
-  font-size: 15px;
-}
-
 .orphan-note {
   font-size: 13px;
   margin: 6px 0 0;
 }
 
-.notice.small,
 .error.small {
   font-size: 13px;
   margin: 8px 0 0;
   padding: 7px 10px;
-}
-
-.approvals {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-top: 10px;
-  padding: 7px 10px;
-  background: var(--surface-2);
-  border-radius: var(--radius-sm);
-}
-
-.approvals-count {
-  font-size: 12.5px;
-  font-weight: 800;
-  color: var(--text-dim);
-}
-
-.people {
-  display: flex;
-  gap: 4px;
-}
-
-.person {
-  position: relative;
-  display: flex;
-  opacity: 0.45;
-  filter: grayscale(1);
-}
-
-.person.done {
-  opacity: 1;
-  filter: none;
-}
-
-.tick {
-  position: absolute;
-  right: -3px;
-  bottom: -3px;
-  background: var(--ok);
-  color: #fff;
-  border-radius: 50%;
-  padding: 1px;
-}
-
-.decision .badge {
-  align-self: center;
 }
 
 .messages {
@@ -363,8 +274,8 @@ header .badge {
   font-size: 14px;
 }
 
-.message.first .body {
-  margin-top: 0;
+.body.first {
+  margin-top: 8px;
 }
 
 .event {
@@ -383,20 +294,40 @@ header .badge {
 
 footer {
   margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.decision {
+.propose-button {
+  align-self: flex-start;
+}
+
+.propose {
   display: flex;
+  flex-direction: column;
   gap: 6px;
-  padding-bottom: 10px;
-  border-bottom: 1px dashed var(--border);
+}
+
+.propose label {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.wording {
+  font-family: var(--serif);
+}
+
+.code .wording {
+  font-family: var(--mono);
+  font-size: 13px;
+  tab-size: 4;
 }
 
 .reply textarea,
-.edit-box textarea {
+.propose textarea {
   font-size: 14px;
 }
 

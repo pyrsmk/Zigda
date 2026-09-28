@@ -26,9 +26,7 @@ watch(
   { immediate: true },
 )
 
-const toReview = computed(() =>
-  threads.value.filter((t) => awaitsMe(t.proposal, session.user)),
-)
+const toReview = computed(() => threads.value.filter((t) => t.proposals.some((p) => awaitsMe(p, session.user))))
 const others = computed(() => threads.value.filter((t) => !toReview.value.includes(t)))
 </script>
 

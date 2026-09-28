@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { api } from '../api.js'
 import { displayName, session } from '../session.js'
-import { STATUS, ago, eventLabel } from '../lib/format.js'
+import { STATUS, SYSTEM_EVENTS, ago, eventLabel, isOpen } from '../lib/format.js'
 import Avatar from '../components/Avatar.vue'
 
 const threads = ref([])
@@ -23,8 +23,7 @@ function target(thread) {
 }
 
 const HEADLINES = {
-  comment: 'started a discussion on',
-  suggestion: 'suggested a change in',
+  passage: 'started a discussion on',
   edit: 'proposed a change to',
   create: 'proposed creating',
   delete: 'proposed deleting',
@@ -37,7 +36,7 @@ function headline(thread) {
 function last(thread) {
   const message = thread.messages.at(-1)
   if (!message) return null
-  return { ...message, text: message.kind === 'event' ? eventLabel(message.body) : message.body }
+  return { ...message, text: message.kind === 'event' ? eventLabel(message.body, thread.proposals) : message.body }
 }
 </script>
 
@@ -52,8 +51,8 @@ function last(thread) {
     <template v-else>
       <h1>Hello {{ session.user.name?.split(' ')[0] || session.user.login }}</h1>
       <p class="muted intro">
-        Pick a file from the list on the left to read it. Select a passage to comment on it or suggest a change:
-        nothing is written to the repository without the approval of every other team member.
+        Pick a file from the list on the left to read it. Select a passage to comment on it or propose a new
+        wording: nothing is written to the repository without the approval of every other team member.
       </p>
       <h2>Recent activity</h2>
       <div v-if="loading" class="spinner"></div>
@@ -68,14 +67,18 @@ function last(thread) {
               <span class="path">{{ t.path }}</span>
             </p>
             <p v-if="last(t)" class="last faint">
-              <template v-if="last(t).kind === 'event'">{{ displayName(last(t).author) }} {{ last(t).text }}</template>
+              <template v-if="last(t).kind === 'event' && SYSTEM_EVENTS[last(t).body]">{{ last(t).text }}</template>
+              <template v-else-if="last(t).kind === 'event'">{{ displayName(last(t).author) }} {{ last(t).text }}</template>
               <template v-else>{{ displayName(last(t).author) }}: “{{ last(t).text.slice(0, 140) }}”</template>
             </p>
           </div>
           <div class="side">
             <span v-if="t.proposal" class="badge" :class="t.proposal.status">{{ STATUS[t.proposal.status] }}</span>
+            <span v-else-if="t.status === 'open' && t.proposals.some(isOpen)" class="badge pending">
+              {{ STATUS.pending }}
+            </span>
             <span v-else class="badge" :class="t.status === 'resolved' ? 'resolved' : 'pending'">
-              {{ t.status === 'resolved' ? 'Resolved' : 'Open' }}
+              {{ t.status === 'resolved' ? 'Closed' : 'Open' }}
             </span>
             <span class="faint when">{{ ago(t.updated_at) }}</span>
           </div>

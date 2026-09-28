@@ -13,25 +13,32 @@ A simple space to read, discuss and collaboratively edit the text files of a Git
   proposed it, and the commit message credits those who approved it.
 - **Browsing**: file tree, formatted view (rendered Markdown, syntax-highlighted code) or raw text,
   images, and per-file change history.
-- **Discussions**: select a passage to comment on it. The passage stays highlighted, the discussion can
-  be resolved, and the highlight follows the passage even when the text around it changes.
+- **Discussions on passages**: select a passage to open a discussion in the column next to the text, or click
+  between two words to propose inserting text there. A discussion can start with a question or directly with a
+  new wording. A passage can only carry one open discussion at a time: to weigh in on it, reply or propose
+  another version in that discussion. The highlight follows the passage even when the text around it changes.
 - **Proposals**: nothing is written to the repository without the approval of every other team member.
   A proposal can be:
-  - a suggestion on a selected passage ("replace with…");
-  - a full edit of a file in the editor;
-  - the creation or deletion of a file.
+  - a new version of a passage, inside its discussion (anyone can add their own version, one at a time);
+  - the creation of a file, written in the editor;
+  - the deletion of a file.
 
 ### How approval works
 
 - Every signed-in member except the author must approve. As soon as the last approval comes in, the
-  change is committed to the branch and the discussion is closed.
-- A single rejection closes the proposal.
-- If the author edits their proposal, approvals start over.
+  change is committed to the branch.
+- In a discussion, each version is approved separately. The first one approved by everyone is applied, the
+  other versions are set aside and the discussion is closed.
+- A single rejection closes the version (or the file proposal).
+- If the author edits their version, approvals start over.
+- A deletion can only be approved once the older discussions on the file are settled. Once applied,
+  everything else attached to the file is erased.
 - The members counted are those present at the time of the last approval: a newcomer must approve too,
   and a removed member is no longer waited for (removing them applies any proposals that were only
-  waiting on them). An invited person only counts once they have signed in.
-- If the file changed in the meantime, Zigda merges automatically when possible. Otherwise the proposal
-  is marked as needing rework and its author resolves the conflicting passages in the editor.
+  waiting on them, and cancels their own pending proposals). An invited person only counts once they have
+  signed in.
+- If a passage is changed or removed directly in the repository, its discussion is closed. If a file is
+  deleted directly in the repository, everything attached to it is erased.
 
 ## Deployment
 

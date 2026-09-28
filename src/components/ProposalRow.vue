@@ -1,24 +1,27 @@
 <script setup>
 import { computed } from 'vue'
 import { displayName, session } from '../session.js'
-import { ACTIONS, STATUS, ago, awaitsMe, proposalTitle } from '../lib/format.js'
+import { ACTIONS, STATUS, ago, awaitsMe, isOpen, proposalTitle } from '../lib/format.js'
 import Avatar from './Avatar.vue'
 
 const props = defineProps({ thread: Object })
-const p = computed(() => props.thread.proposal)
-const toReview = computed(() => awaitsMe(p.value, session.user))
+const passage = computed(() => props.thread.kind === 'passage')
+const versions = computed(() => props.thread.proposals)
+const open = computed(() => versions.value.filter(isOpen))
+const p = computed(() => open.value.at(-1) ?? versions.value.at(-1))
+const toReview = computed(() => versions.value.some((v) => awaitsMe(v, session.user)))
 const summary = computed(() => {
-  if (!p.value.title && p.value.action === 'replace') {
-    return `“${props.thread.anchor.quote.slice(0, 80)}” → “${p.value.content.slice(0, 80)}”`
-  }
-  return proposalTitle(p.value)
+  if (!passage.value) return proposalTitle(p.value)
+  return `“${props.thread.anchor.quote.slice(0, 80)}” → “${p.value.content.slice(0, 80)}”`
 })
+const kind = computed(() => ACTIONS[p.value.action])
 const target = computed(() =>
-  props.thread.kind === 'suggestion'
+  passage.value
     ? { name: 'file', params: { path: props.thread.path.split('/') }, query: { discussion: props.thread.id } }
     : { name: 'proposal', params: { id: p.value.id } },
 )
 const replies = computed(() => props.thread.messages.filter((m) => m.kind === 'text').length)
+const updated = computed(() => new Date(Math.max(...versions.value.map((v) => new Date(v.updated_at)))))
 </script>
 
 <template>
@@ -29,16 +32,20 @@ const replies = computed(() => props.thread.messages.filter((m) => m.kind === 't
         <strong class="summary">{{ summary }}</strong>
       </div>
       <div class="meta faint">
-        <span class="kind">{{ ACTIONS[p.action] }}</span> · {{ p.path }} · {{ displayName(p.author) }} ·
-        {{ ago(p.updated_at) }}
+        <span class="kind">{{ kind }}</span> · {{ thread.path }} · {{ displayName(p.author) }} ·
+        {{ ago(updated) }}
+        <template v-if="versions.length > 1"> · {{ versions.length }} versions</template>
         <template v-if="replies"> · {{ replies }} message{{ replies > 1 ? 's' : '' }}</template>
       </div>
     </div>
     <span v-if="toReview" class="badge count">To review</span>
-    <span v-if="p.status === 'pending'" class="faint progress">
-      {{ p.approved_by.length }}/{{ p.approved_by.length + p.waiting_for.length }} approval{{ p.approved_by.length + p.waiting_for.length > 1 ? 's' : '' }}
-    </span>
-    <span class="badge" :class="p.status">{{ STATUS[p.status] }}</span>
+    <span v-if="open.length > 1" class="badge pending">{{ open.length }} versions pending</span>
+    <template v-else>
+      <span v-if="p.status === 'pending'" class="faint progress">
+        {{ p.approved_by.length }}/{{ p.approved_by.length + p.waiting_for.length }} approval{{ p.approved_by.length + p.waiting_for.length > 1 ? 's' : '' }}
+      </span>
+      <span class="badge" :class="p.status">{{ STATUS[p.status] }}</span>
+    </template>
   </RouterLink>
 </template>
 

@@ -14,8 +14,8 @@ const thread = ref(null)
 const error = ref('')
 
 const p = computed(() => thread.value?.proposal)
-const prose = computed(() => (p.value ? isProse(p.value.path) || p.value.action === 'replace' : false))
-const before = computed(() => (p.value?.action === 'replace' ? thread.value.anchor.quote : (p.value?.base_content ?? '')))
+const prose = computed(() => (p.value ? isProse(p.value.path) : false))
+const before = computed(() => p.value?.base_content ?? '')
 const after = computed(() => (p.value?.action === 'delete' ? '' : (p.value?.content ?? '')))
 
 async function load() {

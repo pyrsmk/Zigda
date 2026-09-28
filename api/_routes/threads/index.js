@@ -1,6 +1,8 @@
 import { body, handler, HttpError, param, send } from '../../_lib/http.js'
-import { one } from '../../_lib/db.js'
-import { createThread, loadThread, loadThreads } from '../../_lib/threads.js'
+import { readFile, repoContext } from '../../_lib/repo.js'
+import { createThread, isTaken, loadThread, loadThreads, purgePath } from '../../_lib/threads.js'
+import { addVersion } from '../../_lib/proposals.js'
+import { locate, makeAnchor } from '../../../shared/anchor.js'
 
 function checkAnchor(anchor) {
   const valid =
@@ -24,33 +26,38 @@ export default handler({
   GET: async (req, res) => {
     const path = param(req, 'path')
     if (!path) throw new HttpError(400, 'path_required', 'A path is required')
-    send(res, 200, { threads: await loadThreads(`path = $1 and kind <> 'proposal'`, [path]) })
+    send(res, 200, { threads: await loadThreads(`path = $1 and kind = 'passage'`, [path]) })
   },
   POST: async (req, res) => {
     const input = await body(req)
-    const kind = input.kind === 'suggestion' ? 'suggestion' : 'comment'
-    if (!input.path || !input.baseSha) throw new HttpError(400, 'path_required', 'A path and a sha are required')
+    if (!input.path) throw new HttpError(400, 'path_required', 'A path is required')
     const anchor = checkAnchor(input.anchor)
-    if (kind === 'comment' && !input.body?.trim()) throw new HttpError(400, 'body_required', 'A message is required')
-    if (kind === 'suggestion' && (typeof input.replacement !== 'string' || input.replacement === anchor.quote)) {
-      throw new HttpError(400, 'replacement_required', 'The suggestion must change the text')
+    const proposing = typeof input.replacement === 'string' && input.replacement !== anchor.quote
+    if (!input.body?.trim() && !proposing) {
+      throw new HttpError(400, 'body_required', 'Write a message or propose a modification')
+    }
+
+    const current = await readFile(await repoContext(), input.path)
+    if (!current) {
+      await purgePath(input.path)
+      throw new HttpError(404, 'file_not_found', 'File not found')
+    }
+    if (current.binary) throw new HttpError(400, 'file_binary', 'Binary files cannot be discussed')
+    const place = locate(current.content, anchor)
+    if (!place) throw new HttpError(409, 'passage_missing', 'The passage has changed, reload the file')
+    if (await isTaken(input.path, current.content, place)) {
+      throw new HttpError(409, 'passage_taken', 'This passage is already under discussion')
     }
 
     const thread = await createThread({
       path: input.path,
-      kind,
-      anchor,
-      baseSha: input.baseSha,
+      kind: 'passage',
+      anchor: makeAnchor(current.content, place.start, place.end),
+      baseSha: current.sha,
       userId: req.user.id,
       body: input.body,
     })
-    if (kind === 'suggestion') {
-      await one(
-        `insert into proposals (thread_id, path, action, base_sha, base_content, content, author_id)
-         values ($1, $2, 'replace', $3, $4, $5, $6) returning id`,
-        [thread.id, input.path, input.baseSha, anchor.quote, input.replacement, req.user.id],
-      )
-    }
+    if (proposing) await addVersion(thread.id, req.user, { content: input.replacement }, { announce: false })
     send(res, 201, { thread: await loadThread(thread.id) })
   },
 })

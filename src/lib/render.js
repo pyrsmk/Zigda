@@ -215,6 +215,32 @@ function leafOffset(root, node, offset) {
   return null
 }
 
+function textNodes(range) {
+  const common = range.commonAncestorContainer
+  if (common.nodeType === Node.TEXT_NODE) return [common]
+  const nodes = []
+  const walker = document.createTreeWalker(common, NodeFilter.SHOW_TEXT)
+  while (walker.nextNode()) if (range.intersectsNode(walker.currentNode)) nodes.push(walker.currentNode)
+  return nodes
+}
+
+function firstLine(range) {
+  let line = null
+  for (const node of textNodes(range)) {
+    const part = document.createRange()
+    part.selectNodeContents(node)
+    if (node === range.startContainer) part.setStart(node, range.startOffset)
+    if (node === range.endContainer) part.setEnd(node, range.endOffset)
+    for (const rect of part.getClientRects()) {
+      if (!rect.width) continue
+      if (!line) line = { top: rect.top, bottom: rect.bottom, right: rect.right }
+      else if (rect.top + rect.height / 2 < line.bottom) line.right = Math.max(line.right, rect.right)
+      else return line
+    }
+  }
+  return line
+}
+
 export function selectionRange(root) {
   const selection = window.getSelection()
   if (!selection || selection.isCollapsed || !selection.rangeCount) return null
@@ -223,5 +249,6 @@ export function selectionRange(root) {
   const start = leafOffset(root, range.startContainer, range.startOffset)
   const end = leafOffset(root, range.endContainer, range.endOffset)
   if (start === null || end === null || end <= start) return null
-  return { start, end, rect: range.getBoundingClientRect() }
+  const line = firstLine(range)
+  return line && { start, end, line }
 }

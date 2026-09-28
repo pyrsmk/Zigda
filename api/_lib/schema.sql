@@ -31,7 +31,7 @@ create table if not exists invitations (
 create table if not exists threads (
   id          uuid primary key default gen_random_uuid(),
   path        text not null,
-  kind        text not null check (kind in ('comment', 'suggestion', 'proposal')),
+  kind        text not null,
   anchor      jsonb,
   base_sha    text,
   status      text not null default 'open' check (status in ('open', 'resolved')),
@@ -41,6 +41,9 @@ create table if not exists threads (
   resolved_by bigint references users(id),
   resolved_at timestamptz
 );
+
+alter table threads drop constraint if exists threads_kind_check;
+alter table threads add constraint threads_kind_check check (kind in ('passage', 'proposal'));
 
 create index if not exists threads_path_idx on threads (path, status);
 create index if not exists threads_updated_idx on threads (updated_at desc);
@@ -58,15 +61,14 @@ create index if not exists messages_thread_idx on messages (thread_id, created_a
 
 create table if not exists proposals (
   id           uuid primary key default gen_random_uuid(),
-  thread_id    uuid not null unique references threads(id) on delete cascade,
+  thread_id    uuid not null references threads(id) on delete cascade,
   path         text not null,
-  action       text not null check (action in ('edit', 'create', 'delete', 'replace')),
+  action       text not null,
   title        text,
   base_sha     text,
   base_content text,
   content      text,
-  status       text not null default 'pending'
-               check (status in ('pending', 'applying', 'applied', 'rejected', 'withdrawn', 'conflict')),
+  status       text not null default 'pending',
   error        text,
   author_id    bigint not null references users(id),
   decided_by   bigint references users(id),
@@ -76,6 +78,14 @@ create table if not exists proposals (
   updated_at   timestamptz not null default now()
 );
 
+alter table proposals drop constraint if exists proposals_thread_id_key;
+alter table proposals drop constraint if exists proposals_action_check;
+alter table proposals add constraint proposals_action_check check (action in ('edit', 'create', 'delete', 'replace'));
+alter table proposals drop constraint if exists proposals_status_check;
+alter table proposals add constraint proposals_status_check
+  check (status in ('pending', 'applying', 'applied', 'rejected', 'withdrawn', 'conflict', 'discarded'));
+
+create index if not exists proposals_thread_idx on proposals (thread_id);
 create index if not exists proposals_status_idx on proposals (status, updated_at desc);
 create index if not exists proposals_path_idx on proposals (path, status);
 

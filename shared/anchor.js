@@ -22,12 +22,19 @@ function commonPrefix(a, b) {
   return n
 }
 
+function occurrences(text, needle) {
+  const found = []
+  for (let i = text.indexOf(needle); i !== -1; i = text.indexOf(needle, i + 1)) found.push(i)
+  return found
+}
+
 export function locate(text, anchor) {
-  if (!anchor?.quote) return null
+  if (!anchor) return null
   const { quote, prefix = '', suffix = '' } = anchor
+  const starts = occurrences(text, quote)
   let best = null
   let bestScore = -Infinity
-  for (let i = text.indexOf(quote); i !== -1; i = text.indexOf(quote, i + 1)) {
+  for (const i of starts) {
     const before = text.slice(Math.max(0, i - prefix.length), i)
     const after = text.slice(i + quote.length, i + quote.length + suffix.length)
     const distance = Math.abs(i - anchor.start) / (text.length + 1)
@@ -40,8 +47,6 @@ export function locate(text, anchor) {
   return best
 }
 
-export function replaceAt(text, anchor, replacement) {
-  const place = locate(text, anchor)
-  if (!place) return null
-  return text.slice(0, place.start) + replacement + text.slice(place.end)
+export function overlaps(a, b) {
+  return a.start < b.end && b.start < a.end
 }

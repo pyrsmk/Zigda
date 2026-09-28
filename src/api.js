@@ -13,19 +13,22 @@ const MESSAGES = {
   cannot_remove_owner: 'The owner cannot be removed.',
   file_not_found: 'This file no longer exists.',
   file_exists: 'A file with this name already exists.',
-  file_changed: 'The file has changed in the meantime, please reload it.',
   file_missing: 'The file no longer exists.',
   file_binary: 'This file cannot be edited here.',
   invalid_path: 'This file path is not valid.',
-  no_change: 'There are no changes to propose.',
-  conflict_markers: 'Some conflicting passages still need to be resolved.',
   own_proposal: 'You cannot approve your own proposal.',
   not_author: 'Only the author of the proposal can do this.',
   proposal_not_pending: 'This proposal has already been handled.',
-  proposal_conflict: 'The file has changed since: the proposal needs to be reworked by its author.',
-  body_required: 'Write a message.',
-  replacement_required: 'The proposal must change the text.',
+  body_required: 'Write a message or propose a modification.',
+  replacement_required: 'The version must change the text.',
   invalid_anchor: 'Select a passage of the text.',
+  passage_missing: 'This passage has been changed in the repository in the meantime.',
+  passage_taken: 'This passage is already under discussion.',
+  version_exists: 'You already have a version in this discussion: edit it instead.',
+  versions_pending: 'Some versions are still waiting for a decision.',
+  thread_closed: 'This discussion is closed.',
+  thread_applied: 'A version of this passage has already been applied.',
+  deletion_blocked: 'Older discussions on this file must be settled first.',
 }
 
 export class ApiError extends Error {
@@ -72,6 +75,8 @@ export const api = {
 
   threads: (path) => request(`/threads?path=${q(path)}`).then((d) => d.threads),
   createThread: (input) => request('/threads', { method: 'POST', body: input }).then((d) => d.thread),
+  addVersion: (id, input) =>
+    request(`/threads/${id}/proposals`, { method: 'POST', body: input }).then((d) => d.thread),
   reply: (id, body) => request(`/threads/${id}/messages`, { method: 'POST', body: { body } }).then((d) => d.thread),
   setThreadStatus: (id, status) =>
     request(`/threads/${id}`, { method: 'PATCH', body: { status } }).then((d) => d.thread),

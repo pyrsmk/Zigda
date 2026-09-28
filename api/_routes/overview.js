@@ -4,15 +4,16 @@ import { query } from '../_lib/db.js'
 export default handler({
   GET: async (req, res) => {
     const threads = await query(
-      `select t.path, t.kind, count(*)::int as count
-         from threads t left join proposals p on p.thread_id = t.id
-        where t.status = 'open' and (p.id is null or p.status in ('pending', 'conflict', 'applying'))
-        group by t.path, t.kind`,
+      `select t.path,
+              exists (select 1 from proposals p where p.thread_id = t.id
+                        and p.status in ('pending', 'conflict', 'applying')) as proposing
+         from threads t
+        where t.status = 'open'`,
     )
     const files = {}
     for (const row of threads) {
       files[row.path] ??= { comments: 0, proposals: 0 }
-      files[row.path][row.kind === 'comment' ? 'comments' : 'proposals'] += row.count
+      files[row.path][row.proposing ? 'proposals' : 'comments']++
     }
     const toReview = await query(
       `select count(*)::int as count from proposals p

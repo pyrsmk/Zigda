@@ -1,6 +1,6 @@
 import { body, handler, HttpError, param, send } from '../../_lib/http.js'
 import { one } from '../../_lib/db.js'
-import { readFile, readText, repoContext } from '../../_lib/repo.js'
+import { readFile, repoContext } from '../../_lib/repo.js'
 import { createThread, loadThreads } from '../../_lib/threads.js'
 import { checkContent } from '../../_lib/proposals.js'
 
@@ -18,17 +18,19 @@ export default handler({
   GET: async (req, res) => {
     const closed = param(req, 'status') === 'closed'
     const path = param(req, 'path')
-    const filters = [`status ${closed ? 'not in' : 'in'} ${OPEN}`]
     const params = []
+    const filters = [`${closed ? 'not ' : ''}exists (select 1 from proposals o where o.thread_id = p.thread_id and o.status in ${OPEN})`]
     if (path) {
       params.push(path)
-      filters.push(`path = $1`)
+      filters.push(`p.path = $1`)
     }
     const threads = await loadThreads(
-      `id in (select thread_id from proposals where ${filters.join(' and ')} order by updated_at desc limit 50)`,
+      `id in (select p.thread_id from proposals p where ${filters.join(' and ')}
+                group by p.thread_id order by max(p.updated_at) desc limit 50)`,
       params,
     )
-    threads.sort((a, b) => new Date(b.proposal.updated_at) - new Date(a.proposal.updated_at))
+    const latest = (t) => Math.max(...t.proposals.map((p) => new Date(p.updated_at)))
+    threads.sort((a, b) => latest(b) - latest(a))
     send(res, 200, { threads })
   },
   POST: async (req, res) => {
@@ -42,14 +44,6 @@ export default handler({
     if (input.action === 'create') {
       checkContent(input.content)
       if (await readFile(ctx, path)) throw new HttpError(409, 'file_exists', 'This file already exists')
-      content = input.content
-    } else if (input.action === 'edit') {
-      checkContent(input.content)
-      if (!input.baseSha) throw new HttpError(400, 'sha_required', 'The edited version is required')
-      baseContent = await readText(ctx, input.baseSha)
-      if (baseContent === null) throw new HttpError(400, 'file_binary', 'Binary files cannot be edited')
-      if (baseContent === input.content) throw new HttpError(400, 'no_change', 'Nothing changed')
-      baseSha = input.baseSha
       content = input.content
     } else if (input.action === 'delete') {
       const current = await readFile(ctx, path)

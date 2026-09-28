@@ -1,6 +1,6 @@
 import { handler, HttpError, param, send } from '../../_lib/http.js'
 import { query } from '../../_lib/db.js'
-import { applyCompletedProposals } from '../../_lib/proposals.js'
+import { applyCompletedProposals, cancelAuthorProposals } from '../../_lib/proposals.js'
 
 export default handler(
   {
@@ -10,6 +10,7 @@ export default handler(
       if (users.some((u) => u.role === 'root')) throw new HttpError(400, 'cannot_remove_owner', 'The owner stays')
       await query(`update users set active = false where lower(login) = $1 and role <> 'root'`, [login])
       await query('delete from invitations where login = $1', [login])
+      for (const user of users) await cancelAuthorProposals(user.id, req.user)
       if (users.length) await applyCompletedProposals(req.user)
       send(res, 200, { ok: true })
     },

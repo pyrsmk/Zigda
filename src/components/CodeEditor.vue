@@ -2,12 +2,11 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { EditorView, basicSetup } from 'codemirror'
 import { Compartment, EditorState, Prec } from '@codemirror/state'
-import { Decoration, MatchDecorator, ViewPlugin, keymap } from '@codemirror/view'
+import { keymap } from '@codemirror/view'
 import { indentWithTab } from '@codemirror/commands'
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { tags } from '@lezer/highlight'
 import { editorLanguage } from '../lib/languages.js'
-import { MARKERS } from '../../shared/merge.js'
 
 const props = defineProps({
   modelValue: String,
@@ -31,7 +30,6 @@ const theme = EditorView.theme({
     backgroundColor: 'var(--accent-soft) !important',
   },
   '.cm-scroller': { overflow: 'auto' },
-  '.cm-conflict': { backgroundColor: 'var(--danger-soft)', color: 'var(--danger)', fontWeight: '700' },
 })
 
 const proseTheme = EditorView.theme({
@@ -54,18 +52,6 @@ const highlight = HighlightStyle.define([
   { tag: [tags.meta, tags.processingInstruction], color: '#a6957c' },
 ])
 
-const conflictMatcher = new MatchDecorator({
-  regexp: new RegExp(`^(${Object.values(MARKERS).map((m) => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})$`, 'gm'),
-  decoration: Decoration.mark({ class: 'cm-conflict' }),
-})
-
-const conflicts = ViewPlugin.define((v) => ({
-  decorations: conflictMatcher.createDeco(v),
-  update(u) {
-    this.decorations = conflictMatcher.updateDeco(u, this.decorations)
-  },
-}), { decorations: (p) => p.decorations })
-
 onMounted(async () => {
   view = new EditorView({
     parent: host.value,
@@ -76,7 +62,6 @@ onMounted(async () => {
         keymap.of([indentWithTab]),
         theme,
         syntaxHighlighting(highlight),
-        conflicts,
         props.prose ? [EditorView.lineWrapping, Prec.highest(proseTheme)] : [],
         languageSlot.of([]),
         EditorView.updateListener.of((u) => {

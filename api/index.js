@@ -20,6 +20,7 @@ import setup from './_routes/setup/index.js'
 import setupRepos from './_routes/setup/repos.js'
 import thread from './_routes/threads/[id].js'
 import threadMessages from './_routes/threads/[id]/messages.js'
+import threadProposals from './_routes/threads/[id]/proposals.js'
 import threads from './_routes/threads/index.js'
 import tree from './_routes/tree.js'
 
@@ -46,6 +47,7 @@ const routes = [
   ['threads', threads],
   ['threads/:id', thread],
   ['threads/:id/messages', threadMessages],
+  ['threads/:id/proposals', threadProposals],
   ['tree', tree],
 ].map(([pattern, handle]) => ({ segments: pattern.split('/'), handle }))
 
