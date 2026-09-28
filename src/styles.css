@@ -481,3 +481,39 @@ a {
     padding: 7px 13px;
   }
 }
+
+@media (max-width: 760px) {
+  .writing {
+    position: fixed;
+    top: var(--view-top, 0px);
+    left: 0;
+    right: 0;
+    height: var(--view-height, 100dvh);
+    z-index: 10;
+    margin: 0;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow: auto;
+    background: var(--surface);
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    cursor: auto;
+  }
+
+  .writing .writing-bar {
+    order: -1;
+  }
+
+  .writing .writing-bar > :first-child {
+    margin-right: auto;
+  }
+
+  .writing .writing-field {
+    flex: 1;
+    min-height: 5em;
+    resize: none;
+  }
+}

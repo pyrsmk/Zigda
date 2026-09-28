@@ -221,7 +221,7 @@ function checkReplacement(thread, content) {
   if (content === thread.anchor.quote) throw new HttpError(400, 'replacement_required', 'The version must change the text')
 }
 
-export async function addVersion(threadId, user, { content, body }, { announce = true } = {}) {
+export async function addVersion(threadId, user, { content }, { announce = true } = {}) {
   const thread = await openPassage(threadId)
   checkReplacement(thread, content)
   const existing = await one(
@@ -235,7 +235,6 @@ export async function addVersion(threadId, user, { content, body }, { announce =
     [thread.id, thread.path, thread.base_sha, thread.anchor.quote, content, user.id],
   )
   if (announce) await addMessage(thread.id, user.id, `proposed@${proposal.id}`, 'event')
-  if (body?.trim()) await addMessage(thread.id, user.id, body.trim())
   return proposal
 }
 

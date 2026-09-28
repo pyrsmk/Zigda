@@ -2,6 +2,7 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { api } from '../api.js'
 import { refreshOverview } from '../session.js'
+import { compact } from '../lib/viewport.js'
 import Icon from './Icon.vue'
 import PassageQuote from './PassageQuote.vue'
 
@@ -13,6 +14,7 @@ const replacement = ref('')
 const busy = ref(false)
 const error = ref('')
 const form = ref(null)
+const quoteOpen = ref(false)
 
 const proposing = computed(() => props.draft.kind === 'version')
 const ready = computed(() =>
@@ -30,6 +32,7 @@ watch(
     text.value = ''
     replacement.value = draft?.anchor.quote ?? ''
     error.value = ''
+    quoteOpen.value = false
     focus()
   },
   { immediate: true },
@@ -46,7 +49,7 @@ async function submit() {
       path: props.path,
       anchor: props.draft.anchor,
       baseSha: props.sha,
-      body: text.value,
+      body: proposing.value ? undefined : text.value,
       replacement: proposing.value ? replacement.value : undefined,
     })
     refreshOverview()
@@ -60,30 +63,35 @@ async function submit() {
 </script>
 
 <template>
-  <form ref="form" class="composer card" :class="{ code: !prose }" @submit.prevent="submit">
+  <form ref="form" class="composer card" :class="{ code: !prose, writing: compact }" @submit.prevent="submit">
     <div class="segmented">
       <button type="button" :class="{ active: !proposing }" @click="draft.kind = 'comment'">Comment</button>
       <button type="button" :class="{ active: proposing }" @click="draft.kind = 'version'">
         Modify
       </button>
     </div>
-    <PassageQuote :anchor="draft.anchor" :code="!prose" class="quote" />
+    <PassageQuote
+      :anchor="draft.anchor"
+      :code="!prose"
+      class="quote"
+      :class="{ open: quoteOpen }"
+      @click="quoteOpen = !quoteOpen"
+    />
     <template v-if="proposing">
       <label class="faint">Replace with</label>
-      <textarea v-model="replacement" rows="4" class="replacement"></textarea>
-      <label class="faint">Explanation (optional)</label>
-      <textarea v-model="text" rows="2" placeholder="Why this change?"></textarea>
+      <textarea v-model="replacement" rows="4" class="replacement writing-field"></textarea>
     </template>
     <textarea
       v-else
       v-model="text"
+      class="writing-field"
       rows="3"
       placeholder="Your comment or question…"
       @keydown.enter.meta.prevent="submit"
       @keydown.enter.ctrl.prevent="submit"
     ></textarea>
     <div v-if="error" class="error">{{ error }}</div>
-    <div class="actions">
+    <div class="actions writing-bar">
       <button type="button" class="btn ghost small" @click="emit('cancel')">Cancel</button>
       <button class="btn primary small" :disabled="busy || !ready">
         <Icon :name="proposing ? 'sparkle' : 'message'" :size="14" />
@@ -136,5 +144,15 @@ textarea {
   display: flex;
   justify-content: flex-end;
   gap: 6px;
+}
+
+@media (max-width: 760px) {
+  .quote {
+    flex-shrink: 0;
+  }
+
+  .quote.open {
+    max-height: none;
+  }
 }
 </style>

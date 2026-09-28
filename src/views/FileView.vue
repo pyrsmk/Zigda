@@ -77,10 +77,13 @@ const placed = computed(() =>
   }),
 )
 
+const byPlace = (a, b) => (a.range?.start ?? Infinity) - (b.range?.start ?? Infinity)
+const byDate = (a, b) => new Date(b.thread.created_at) - new Date(a.thread.created_at)
+
 const visible = computed(() =>
   placed.value
     .filter(({ thread }) => showResolved.value || thread.status === 'open')
-    .sort((a, b) => (a.range?.start ?? Infinity) - (b.range?.start ?? Infinity)),
+    .sort(compact.value ? byDate : byPlace),
 )
 
 const resolvedCount = computed(() => threads.value.filter((t) => t.status === 'resolved').length)
@@ -264,6 +267,11 @@ async function select(id, reveal = true) {
   mark?.scrollIntoView({ behavior: 'smooth', block: compact.value && sheetOpen.value ? 'start' : 'center' })
 }
 
+function cancelDraft() {
+  draft.value = null
+  if (compact.value) sheetOpen.value = false
+}
+
 function onCreated(thread) {
   threads.value.push(thread)
   draft.value = null
@@ -390,7 +398,7 @@ const crumbs = computed(() => props.path.split('/'))
             :path="path"
             :sha="file.sha"
             :prose="prose"
-            @cancel="draft = null"
+            @cancel="cancelDraft"
             @created="onCreated"
           />
           <p v-if="!visible.length && !draft" class="hint faint">
@@ -777,22 +785,21 @@ const crumbs = computed(() => props.path.split('/'))
     position: fixed;
     left: 0;
     right: 0;
-    bottom: 0;
+    bottom: -65dvh;
     height: 65dvh;
     z-index: 30;
     padding: 10px 12px calc(40px + env(safe-area-inset-bottom));
     border-top: 1px solid var(--border-strong);
     border-radius: var(--radius) var(--radius) 0 0;
     box-shadow: 0 -6px 24px rgba(80, 60, 30, 0.15);
-    transform: translateY(100%);
     visibility: hidden;
-    transition: transform 0.2s, visibility 0s 0.2s;
+    transition: bottom 0.2s, visibility 0s 0.2s;
   }
 
   .panel.open {
-    transform: none;
+    bottom: 0;
     visibility: visible;
-    transition: transform 0.2s;
+    transition: bottom 0.2s;
   }
 
   .panel-tabs {

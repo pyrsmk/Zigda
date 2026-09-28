@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { api } from '../api.js'
 import { displayName, session } from '../session.js'
 import { CONFLICTS, DISCARDED, STATUS, isOpen } from '../lib/format.js'
+import { compact } from '../lib/viewport.js'
 import Avatar from './Avatar.vue'
 import DiffView from './DiffView.vue'
 import Icon from './Icon.vue'
@@ -56,9 +57,9 @@ async function saveEdit() {
     <div v-if="diff && !editing" class="diff-box">
       <DiffView :before="before" :after="p.content ?? ''" prose :class="{ mono: !prose }" />
     </div>
-    <div v-else-if="editing" class="edit-box" @click.stop>
-      <textarea v-model="content" rows="4" :class="{ mono: !prose }"></textarea>
-      <div class="row-actions">
+    <div v-else-if="editing" class="edit-box" :class="{ writing: compact }" @click.stop>
+      <textarea v-model="content" rows="4" class="writing-field" :class="{ mono: !prose }"></textarea>
+      <div class="row-actions writing-bar">
         <button class="btn ghost small" @click="editing = false">Cancel</button>
         <button class="btn primary small" :disabled="busy || content === before" @click="saveEdit">Save</button>
       </div>

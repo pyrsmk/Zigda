@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { api } from '../api.js'
 import { displayName, refreshOverview, session } from '../session.js'
 import { SYSTEM_EVENTS, ago, eventLabel, fullDate, isOpen } from '../lib/format.js'
+import { compact } from '../lib/viewport.js'
 import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
 import PassageQuote from './PassageQuote.vue'
@@ -22,7 +23,7 @@ const busy = ref(false)
 const error = ref('')
 const proposing = ref(false)
 const wording = ref('')
-const explanation = ref('')
+const replying = ref(false)
 
 const passage = computed(() => props.thread.kind === 'passage')
 const versions = computed(() => props.thread.proposals)
@@ -83,20 +84,21 @@ async function run(action) {
 async function send() {
   const text = reply.value.trim()
   if (!text) return
-  if (await run(() => api.reply(props.thread.id, text))) reply.value = ''
+  if (await run(() => api.reply(props.thread.id, text))) {
+    reply.value = ''
+    replying.value = false
+  }
 }
 
 const setStatus = (status) => run(() => api.setThreadStatus(props.thread.id, status))
 
 function startProposing() {
   wording.value = openVersions.value.at(-1)?.content ?? quote.value
-  explanation.value = ''
   proposing.value = true
 }
 
 async function propose() {
-  const input = { content: wording.value, body: explanation.value }
-  if (await run(() => api.addVersion(props.thread.id, input))) proposing.value = false
+  if (await run(() => api.addVersion(props.thread.id, { content: wording.value }))) proposing.value = false
 }
 
 function number(p) {
@@ -175,12 +177,10 @@ function number(p) {
     <div v-if="error" class="error small">{{ error }}</div>
 
     <footer v-if="active" @click.stop>
-      <form v-if="proposing" class="propose" @submit.prevent="propose">
+      <form v-if="proposing" class="propose" :class="{ writing: compact }" @submit.prevent="propose">
         <label class="faint">Replace with</label>
-        <textarea v-model="wording" rows="4" class="wording"></textarea>
-        <label class="faint">Explanation (optional)</label>
-        <textarea v-model="explanation" rows="2" placeholder="Why this version?"></textarea>
-        <div class="row-actions">
+        <textarea v-model="wording" rows="4" class="wording writing-field"></textarea>
+        <div class="row-actions writing-bar">
           <button type="button" class="btn ghost small" @click="proposing = false">Cancel</button>
           <button class="btn primary small" :disabled="busy || wording === quote">
             <Icon name="sparkle" :size="14" /> Propose
@@ -191,16 +191,21 @@ function number(p) {
         <Icon name="pencil" :size="14" />
         {{ versions.length ? 'Propose another version' : 'Modify' }}
       </button>
-      <form class="reply" @submit.prevent="send">
+      <form class="reply" :class="{ writing: compact && replying }" @submit.prevent="send">
         <textarea
           v-model="reply"
           rows="2"
+          class="writing-field"
           placeholder="Reply…"
+          @focus="replying = true"
           @keydown.enter.meta.prevent="send"
           @keydown.enter.ctrl.prevent="send"
         ></textarea>
-        <div class="row-actions">
-          <template v-if="passage">
+        <div class="row-actions writing-bar">
+          <button v-if="compact && replying" type="button" class="btn ghost small" @click="replying = false">
+            Cancel
+          </button>
+          <template v-else-if="passage">
             <button
               v-if="thread.status === 'open' && !openVersions.length"
               type="button"
