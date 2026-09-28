@@ -95,3 +95,18 @@ create table if not exists approvals (
   created_at  timestamptz not null default now(),
   primary key (proposal_id, user_id)
 );
+
+create table if not exists alerts (
+  id         uuid primary key default gen_random_uuid(),
+  kind       text not null check (kind in ('passage_changed', 'file_deleted')),
+  path       text not null,
+  thread_id  uuid references threads(id) on delete set null,
+  details    jsonb not null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists alert_views (
+  alert_id uuid not null references alerts(id) on delete cascade,
+  user_id  bigint not null references users(id),
+  primary key (alert_id, user_id)
+);

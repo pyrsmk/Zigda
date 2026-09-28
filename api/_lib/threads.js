@@ -1,6 +1,7 @@
 import { one, query } from './db.js'
 import { HttpError } from './http.js'
 import { publicUser } from './session.js'
+import { recordFileDeleted, recordPassageChanged } from './alerts.js'
 import { locate, overlaps } from '../../shared/anchor.js'
 
 export async function usersById(ids) {
@@ -142,7 +143,8 @@ export async function setThreadStatus(threadId, status, userId) {
   )
 }
 
-export async function purgePath(path) {
+export async function purgePath(path, via = 'repository') {
+  await recordFileDeleted(path, via)
   await query(
     `delete from threads t where t.path = $1 and not exists (
        select 1 from proposals p where p.thread_id = t.id
@@ -153,6 +155,7 @@ export async function purgePath(path) {
 }
 
 export async function closeVanished(thread, userId) {
+  await recordPassageChanged(thread)
   await query(
     `update proposals set status = 'discarded', error = 'passage_missing', updated_at = now()
       where thread_id = $1 and status in ('pending', 'conflict', 'applying')`,

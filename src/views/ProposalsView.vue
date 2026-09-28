@@ -3,10 +3,12 @@ import { computed, ref, watch } from 'vue'
 import { api } from '../api.js'
 import { session } from '../session.js'
 import ProposalRow from '../components/ProposalRow.vue'
+import AlertCard from '../components/AlertCard.vue'
 import { awaitsMe } from '../lib/format.js'
 
 const tab = ref('open')
 const threads = ref([])
+const alerts = ref([])
 const loading = ref(true)
 const error = ref('')
 
@@ -16,7 +18,7 @@ watch(
     loading.value = true
     error.value = ''
     try {
-      threads.value = await api.proposals({ closed: value === 'closed' })
+      ;({ threads: threads.value, alerts: alerts.value } = await api.feed({ closed: value === 'closed' }))
     } catch (err) {
       error.value = err.message
     } finally {
@@ -27,7 +29,17 @@ watch(
 )
 
 const toReview = computed(() => threads.value.filter((t) => t.proposals.some((p) => awaitsMe(p, session.user))))
-const others = computed(() => threads.value.filter((t) => !toReview.value.includes(t)))
+const latest = (t) => Math.max(...t.proposals.map((p) => new Date(p.updated_at)))
+const others = computed(() =>
+  [
+    ...threads.value.filter((t) => !toReview.value.includes(t)).map((t) => ({ thread: t, date: latest(t) })),
+    ...alerts.value.map((a) => ({ alert: a, date: new Date(a.created_at).getTime() })),
+  ].sort((a, b) => b.date - a.date),
+)
+
+function onDismissed(id) {
+  alerts.value = alerts.value.filter((a) => a.id !== id)
+}
 </script>
 
 <template>
@@ -42,7 +54,7 @@ const others = computed(() => threads.value.filter((t) => !toReview.value.includ
     <div v-if="loading" class="spinner"></div>
     <div v-else-if="error" class="error">{{ error }}</div>
     <template v-else>
-      <p v-if="!threads.length" class="empty">
+      <p v-if="!threads.length && !alerts.length" class="empty">
         {{ tab === 'open' ? 'No open proposals.' : 'No closed proposals yet.' }}
       </p>
       <section v-if="toReview.length">
@@ -54,7 +66,10 @@ const others = computed(() => threads.value.filter((t) => !toReview.value.includ
       <section v-if="others.length">
         <h2 v-if="toReview.length">Other proposals</h2>
         <div class="list">
-          <ProposalRow v-for="t in others" :key="t.id" :thread="t" />
+          <template v-for="item in others" :key="item.thread?.id ?? item.alert.id">
+            <ProposalRow v-if="item.thread" :thread="item.thread" />
+            <AlertCard v-else :alert="item.alert" @dismissed="onDismissed" />
+          </template>
         </div>
       </section>
     </template>

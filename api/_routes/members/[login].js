@@ -1,6 +1,7 @@
 import { handler, HttpError, param, send } from '../../_lib/http.js'
 import { query } from '../../_lib/db.js'
 import { applyCompletedProposals, cancelAuthorProposals } from '../../_lib/proposals.js'
+import { cleanupAlerts } from '../../_lib/alerts.js'
 
 export default handler(
   {
@@ -12,6 +13,7 @@ export default handler(
       await query('delete from invitations where login = $1', [login])
       for (const user of users) await cancelAuthorProposals(user.id, req.user)
       if (users.length) await applyCompletedProposals(req.user)
+      await cleanupAlerts()
       send(res, 200, { ok: true })
     },
   },

@@ -83,6 +83,8 @@ export const api = {
 
   proposals: ({ closed = false, path } = {}) =>
     request(`/proposals?status=${closed ? 'closed' : 'open'}${path ? `&path=${q(path)}` : ''}`).then((d) => d.threads),
+  feed: ({ closed = false } = {}) => request(`/proposals?status=${closed ? 'closed' : 'open'}`),
+  dismissAlert: (id) => request(`/alerts/${id}/dismiss`, { method: 'POST' }),
   proposal: (id) => request(`/proposals/${id}`).then((d) => d.thread),
   propose: (input) => request('/proposals', { method: 'POST', body: input }),
   revise: (id, input) => request(`/proposals/${id}`, { method: 'PATCH', body: input }).then((d) => d.thread),

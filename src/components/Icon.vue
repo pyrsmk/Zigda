@@ -26,6 +26,7 @@ const PATHS = {
   branch: 'M6 3v12 M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M18 9a9 9 0 0 1-9 9',
   menu: 'M4 6h16 M4 12h16 M4 18h16',
   sparkle: 'M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z',
+  alert: 'M12 3l10 18H2z M12 10v5 M12 18v.5',
 }
 </script>
 

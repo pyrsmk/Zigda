@@ -1,5 +1,6 @@
 import { send } from './_lib/http.js'
 import activity from './_routes/activity.js'
+import alertDismiss from './_routes/alerts/[id]/dismiss.js'
 import authCallback from './_routes/auth/callback.js'
 import authLogin from './_routes/auth/login.js'
 import authLogout from './_routes/auth/logout.js'
@@ -26,6 +27,7 @@ import tree from './_routes/tree.js'
 
 const routes = [
   ['activity', activity],
+  ['alerts/:id/dismiss', alertDismiss],
   ['auth/callback', authCallback],
   ['auth/login', authLogin],
   ['auth/logout', authLogout],

@@ -39,6 +39,8 @@ A simple space to read, discuss and collaboratively edit the text files of a Git
   signed in.
 - If a passage is changed or removed directly in the repository, its discussion is closed. If a file is
   deleted directly in the repository, everything attached to it is erased.
+- When pending proposals are lost this way (or when a deleted file still had some), an alert lists them among
+  the open proposals. Each member can dismiss it; once the whole team has, it is removed.
 
 ## Deployment
 

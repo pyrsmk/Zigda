@@ -3,6 +3,7 @@ import { one } from '../../_lib/db.js'
 import { readFile, repoContext } from '../../_lib/repo.js'
 import { createThread, loadThreads } from '../../_lib/threads.js'
 import { checkContent } from '../../_lib/proposals.js'
+import { listAlerts } from '../../_lib/alerts.js'
 
 const OPEN = `('pending', 'applying', 'conflict')`
 
@@ -31,7 +32,7 @@ export default handler({
     )
     const latest = (t) => Math.max(...t.proposals.map((p) => new Date(p.updated_at)))
     threads.sort((a, b) => latest(b) - latest(a))
-    send(res, 200, { threads })
+    send(res, 200, { threads, alerts: closed ? [] : await listAlerts(req.user.id) })
   },
   POST: async (req, res) => {
     const input = await body(req)

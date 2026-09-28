@@ -173,7 +173,7 @@ async function applyProposal(id, actor, event) {
       await rebaseAnchors(proposal.path, thread.id, result.edit)
     }
     await setThreadStatus(thread.id, 'resolved', actor.id)
-    if (proposal.action === 'delete') await purgePath(proposal.path)
+    if (proposal.action === 'delete') await purgePath(proposal.path, 'proposal')
   } catch (err) {
     if (err instanceof Conflict) {
       if (err.message === 'file_missing') {
