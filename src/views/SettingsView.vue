@@ -168,6 +168,7 @@ p {
 
 .invite input {
   flex: 1;
+  min-width: 0;
 }
 
 .people {

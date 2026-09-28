@@ -84,6 +84,7 @@ const visible = computed(() =>
 )
 
 const resolvedCount = computed(() => threads.value.filter((t) => t.status === 'resolved').length)
+const tab = computed(() => (text.value === null ? 'history' : panel.value))
 const openCount = computed(() => threads.value.filter((t) => t.status === 'open').length)
 
 const html = computed(() => {
@@ -134,7 +135,7 @@ async function load() {
   if (wanted && threads.value.some((t) => t.id === wanted)) {
     showResolved.value = threads.value.find((t) => t.id === wanted).status === 'resolved' || showResolved.value
     await nextTick()
-    select(wanted)
+    select(wanted, false)
   }
 }
 
@@ -254,14 +255,14 @@ function onContentClick(event) {
   select(ids[(index + 1) % ids.length])
 }
 
-async function select(id) {
+async function select(id, reveal = true) {
   activeId.value = id
   panel.value = 'threads'
-  sheetOpen.value = true
+  if (reveal) sheetOpen.value = true
   await nextTick()
   document.getElementById(`thread-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   const mark = content.value?.querySelector(`[data-t~="${id}"]`)
-  mark?.scrollIntoView({ behavior: 'smooth', block: compact.value ? 'start' : 'center' })
+  mark?.scrollIntoView({ behavior: 'smooth', block: compact.value && sheetOpen.value ? 'start' : 'center' })
 }
 
 function onCreated(thread) {
@@ -372,10 +373,10 @@ const crumbs = computed(() => props.path.split('/'))
       <aside v-if="text !== null || image" class="panel" :class="{ open: sheetOpen }">
         <div class="panel-tabs">
           <div class="segmented">
-            <button :class="{ active: panel === 'threads' }" @click="panel = 'threads'">
+            <button v-if="text !== null" :class="{ active: tab === 'threads' }" @click="panel = 'threads'">
               <Icon name="message" :size="13" /> Discussions
             </button>
-            <button :class="{ active: panel === 'history' }" @click="panel = 'history'">
+            <button :class="{ active: tab === 'history' }" @click="panel = 'history'">
               <Icon name="history" :size="13" /> History
             </button>
           </div>
@@ -383,7 +384,7 @@ const crumbs = computed(() => props.path.split('/'))
             <Icon name="x" :size="15" />
           </button>
         </div>
-        <template v-if="panel === 'threads'">
+        <template v-if="tab === 'threads'">
           <Composer
             v-if="draft"
             :draft="draft"
@@ -426,8 +427,11 @@ const crumbs = computed(() => props.path.split('/'))
       class="btn primary sheet-toggle"
       @click="sheetOpen = true"
     >
-      <Icon name="message" :size="15" /> Discussions
-      <span v-if="openCount" class="sheet-count">{{ openCount }}</span>
+      <template v-if="text !== null">
+        <Icon name="message" :size="15" /> Discussions
+        <span v-if="openCount" class="sheet-count">{{ openCount }}</span>
+      </template>
+      <template v-else><Icon name="history" :size="15" /> History</template>
     </button>
 
     <Teleport to="body">
