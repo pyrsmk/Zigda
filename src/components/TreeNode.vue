@@ -43,7 +43,7 @@ const counts = computed(() => {
       @click="$emit('toggle', node.path)"
     >
       <Icon name="chevron" :size="13" class="chevron" :class="{ open }" />
-      <Icon :name="icon" :size="16" class="kind folder" />
+      <Icon :name="icon" :size="16" class="kind" />
       <span class="name">{{ node.name }}</span>
       <span v-if="!open && (counts.comments || counts.proposals)" class="dot" :class="{ proposal: counts.proposals }"></span>
     </button>
@@ -108,10 +108,6 @@ const counts = computed(() => {
 }
 
 .kind {
-  color: var(--accent-muted);
-}
-
-.kind.folder {
   color: var(--accent);
 }
 
