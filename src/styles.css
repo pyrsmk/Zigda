@@ -359,6 +359,10 @@ a {
 }
 
 .prose table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
   border-collapse: collapse;
   font-family: var(--font);
   font-size: 15px;
