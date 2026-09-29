@@ -15,6 +15,10 @@ export async function loadSession() {
   try {
     Object.assign(session, await api.me())
   } catch {
+    if (!navigator.onLine) {
+      await new Promise((resolve) => window.addEventListener('online', resolve, { once: true }))
+      return loadSession()
+    }
     session.user = null
   }
   session.loaded = true

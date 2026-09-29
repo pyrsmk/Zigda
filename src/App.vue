@@ -14,20 +14,30 @@ const router = useRouter()
 const chrome = computed(() => session.user && !route.meta.public && !route.meta.bare)
 const sidebarOpen = ref(!compact.value)
 const menuOpen = ref(false)
+const offline = ref(!navigator.onLine)
 
 let timer
 function poll() {
   if (document.visibilityState === 'visible') refreshOverview()
 }
 
+function connectivity() {
+  offline.value = !navigator.onLine
+  if (!offline.value) poll()
+}
+
 onMounted(() => {
   timer = setInterval(poll, 30_000)
   document.addEventListener('visibilitychange', poll)
+  window.addEventListener('online', connectivity)
+  window.addEventListener('offline', connectivity)
 })
 
 onBeforeUnmount(() => {
   clearInterval(timer)
   document.removeEventListener('visibilitychange', poll)
+  window.removeEventListener('online', connectivity)
+  window.removeEventListener('offline', connectivity)
 })
 
 watch(compact, (value) => (sidebarOpen.value = !value))
@@ -105,9 +115,28 @@ async function signOut() {
     </main>
   </div>
   <RouterView v-else />
+  <div v-if="offline" class="offline">You’re offline — Zigda will pick up again once you reconnect.</div>
 </template>
 
 <style scoped>
+.offline {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 32px);
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--surface);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: var(--shadow);
+  z-index: 100;
+}
+
 .shell {
   display: grid;
   grid-template-columns: 290px 1fr;
