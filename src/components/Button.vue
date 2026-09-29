@@ -91,17 +91,22 @@ defineProps({
   font-size: 13px;
 }
 
-.btn.flush {
-  padding-left: 0;
-}
-
-.btn.ghost.flush:hover:not(:disabled) {
-  background: transparent;
+.btn > .icon {
+  position: relative;
+  top: -0.04em;
 }
 
 @media (pointer: coarse) {
   .btn.small {
     padding: 8px 13px;
   }
+}
+
+.btn.flush {
+  padding-left: 0;
+}
+
+.btn.ghost.flush:hover:not(:disabled) {
+  background: transparent;
 }
 </style>

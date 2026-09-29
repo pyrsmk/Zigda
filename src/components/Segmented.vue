@@ -39,6 +39,11 @@ const model = defineModel()
   color: var(--text-dim);
 }
 
+.segmented button > .icon {
+  position: relative;
+  top: -0.04em;
+}
+
 .segmented button.active {
   background: var(--surface);
   color: var(--text);
