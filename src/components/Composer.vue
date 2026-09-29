@@ -65,9 +65,11 @@ async function submit() {
 <template>
   <form ref="form" class="composer card" :class="{ code: !prose, writing: compact }" @submit.prevent="submit">
     <div class="segmented">
-      <button type="button" :class="{ active: !proposing }" @click="draft.kind = 'comment'">Comment</button>
+      <button type="button" :class="{ active: !proposing }" @click="draft.kind = 'comment'">
+        <Icon v-if="compact" name="message" :size="12" /> Comment
+      </button>
       <button type="button" :class="{ active: proposing }" @click="draft.kind = 'version'">
-        Modify
+        <Icon v-if="compact" name="pencil" :size="12" /> Modify
       </button>
     </div>
     <PassageQuote
@@ -92,7 +94,9 @@ async function submit() {
     ></textarea>
     <div v-if="error" class="error">{{ error }}</div>
     <div class="actions writing-bar">
-      <button type="button" class="btn ghost small" @click="emit('cancel')">Cancel</button>
+      <button type="button" class="btn ghost small" @click="emit('cancel')">
+        <Icon v-if="compact" name="back" :size="14" /> Cancel
+      </button>
       <button class="btn primary small" :disabled="busy || !ready">
         <Icon :name="proposing ? 'sparkle' : 'message'" :size="14" />
         {{ proposing ? 'Propose' : 'Post' }}
@@ -112,6 +116,12 @@ async function submit() {
 
 .segmented {
   align-self: flex-start;
+}
+
+.segmented button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .quote {
