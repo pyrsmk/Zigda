@@ -3,7 +3,9 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { api } from '../api.js'
 import { refreshOverview } from '../session.js'
 import { compact } from '../lib/viewport.js'
-import Icon from './Icon.vue'
+import Button from './Button.vue'
+import Card from './Card.vue'
+import Segmented from './Segmented.vue'
 import PassageQuote from './PassageQuote.vue'
 
 const props = defineProps({ draft: Object, path: String, sha: String, prose: Boolean })
@@ -23,7 +25,7 @@ const ready = computed(() =>
 
 async function focus() {
   await nextTick()
-  form.value?.querySelector('textarea')?.focus()
+  form.value?.$el.querySelector('textarea')?.focus()
 }
 
 watch(
@@ -63,15 +65,21 @@ async function submit() {
 </script>
 
 <template>
-  <form ref="form" class="composer card" :class="{ code: !prose, writing: compact }" @submit.prevent="submit">
-    <div class="segmented">
-      <button type="button" :class="{ active: !proposing }" @click="draft.kind = 'comment'">
-        <Icon v-if="compact" name="message" :size="12" /> Comment
-      </button>
-      <button type="button" :class="{ active: proposing }" @click="draft.kind = 'version'">
-        <Icon v-if="compact" name="pencil" :size="12" /> Modify
-      </button>
-    </div>
+  <Card
+    ref="form"
+    as="form"
+    class="composer"
+    :class="{ code: !prose, writing: compact }"
+    @submit.prevent="submit"
+  >
+    <Segmented
+      v-model="draft.kind"
+      :icon-size="12"
+      :options="[
+        { value: 'comment', label: 'Comment', icon: compact ? 'message' : null },
+        { value: 'version', label: 'Modify', icon: compact ? 'pencil' : null },
+      ]"
+    />
     <PassageQuote
       :anchor="draft.anchor"
       :code="!prose"
@@ -94,15 +102,28 @@ async function submit() {
     ></textarea>
     <div v-if="error" class="error">{{ error }}</div>
     <div class="actions writing-bar">
-      <button type="button" class="btn ghost small" @click="emit('cancel')">
-        <Icon v-if="compact" name="back" :size="14" /> Cancel
-      </button>
-      <button class="btn primary small" :disabled="busy || !ready">
-        <Icon :name="proposing ? 'sparkle' : 'message'" :size="14" />
+      <Button
+        type="button"
+        variant="ghost"
+        small
+        :flush="compact"
+        :icon="compact ? 'back' : null"
+        :icon-size="14"
+        @click="emit('cancel')"
+      >
+        Cancel
+      </Button>
+      <Button
+        variant="primary"
+        small
+        :icon="proposing ? 'sparkle' : 'message'"
+        :icon-size="14"
+        :disabled="busy || !ready"
+      >
         {{ proposing ? 'Propose' : 'Post' }}
-      </button>
+      </Button>
     </div>
-  </form>
+  </Card>
 </template>
 
 <style scoped>
@@ -116,12 +137,6 @@ async function submit() {
 
 .segmented {
   align-self: flex-start;
-}
-
-.segmented button {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
 }
 
 .quote {

@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { api } from '../api.js'
 import { ago } from '../lib/format.js'
 import Icon from './Icon.vue'
+import Button from './Button.vue'
 
 const props = defineProps({ current: Object })
 const emit = defineEmits(['saved'])
@@ -79,15 +80,13 @@ async function save() {
     <div v-else class="branch-step">
       <p>
         Selected repository: <strong>{{ selected.full_name }}</strong>
-        <button class="btn ghost small" @click="selected = null">Change</button>
+        <Button variant="ghost" small @click="selected = null">Change</Button>
       </p>
       <label>Branch to work on</label>
       <select v-model="branch" :disabled="!branches.length">
         <option v-for="b in branches" :key="b" :value="b">{{ b }}</option>
       </select>
-      <button class="btn primary" :disabled="!branch || saving" @click="save">
-        <Icon name="check" :size="15" /> Confirm
-      </button>
+      <Button variant="primary" icon="check" :disabled="!branch || saving" @click="save">Confirm</Button>
     </div>
   </div>
 </template>

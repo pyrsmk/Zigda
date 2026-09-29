@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { displayName, session } from '../session.js'
 import { ACTIONS, STATUS, ago, awaitsMe, isOpen, proposalTitle } from '../lib/format.js'
 import Avatar from './Avatar.vue'
+import Card from './Card.vue'
 
 const props = defineProps({ thread: Object })
 const passage = computed(() => props.thread.kind === 'passage')
@@ -25,7 +26,7 @@ const updated = computed(() => new Date(Math.max(...versions.value.map((v) => ne
 </script>
 
 <template>
-  <RouterLink :to="target" class="row card" :class="{ review: toReview }">
+  <Card :to="target" class="row" :class="{ review: toReview }">
     <Avatar :user="p.author" :size="34" />
     <div class="text">
       <div class="line">
@@ -46,7 +47,7 @@ const updated = computed(() => new Date(Math.max(...versions.value.map((v) => ne
       </span>
       <span class="badge" :class="p.status">{{ STATUS[p.status] }}</span>
     </template>
-  </RouterLink>
+  </Card>
 </template>
 
 <style scoped>

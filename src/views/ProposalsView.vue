@@ -4,6 +4,7 @@ import { api } from '../api.js'
 import { session } from '../session.js'
 import ProposalRow from '../components/ProposalRow.vue'
 import AlertCard from '../components/AlertCard.vue'
+import Segmented from '../components/Segmented.vue'
 import { awaitsMe } from '../lib/format.js'
 
 const tab = ref('open')
@@ -46,10 +47,13 @@ function onDismissed(id) {
   <div class="page">
     <div class="head">
       <h1>Proposals</h1>
-      <div class="segmented">
-        <button :class="{ active: tab === 'open' }" @click="tab = 'open'">Open</button>
-        <button :class="{ active: tab === 'closed' }" @click="tab = 'closed'">Closed</button>
-      </div>
+      <Segmented
+        v-model="tab"
+        :options="[
+          { value: 'open', label: 'Open' },
+          { value: 'closed', label: 'Closed' },
+        ]"
+      />
     </div>
     <div v-if="loading" class="spinner"></div>
     <div v-else-if="error" class="error">{{ error }}</div>

@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import { api } from '../api.js'
 import { ago, fullDate } from '../lib/format.js'
 import Avatar from './Avatar.vue'
+import Card from './Card.vue'
 
 const props = defineProps({ path: String, sha: String })
 
@@ -60,7 +61,7 @@ function detail(message) {
     <div v-if="loading" class="spinner"></div>
     <div v-else-if="error" class="error">{{ error }}</div>
     <p v-else-if="!commits.length" class="faint">No history for this file.</p>
-    <div v-for="c in commits" :key="c.sha" class="commit card" :class="{ open: openSha === c.sha }">
+    <Card v-for="c in commits" :key="c.sha" class="commit" :class="{ open: openSha === c.sha }">
       <button class="commit-head" @click="toggle(c.sha)">
         <Avatar :user="{ name: c.author.name, avatar_url: c.author.avatar_url }" :size="24" />
         <div class="commit-text">
@@ -79,7 +80,7 @@ function detail(message) {
           >{{ line || ' ' }}</span></pre>
         <p v-else class="faint">No details available (file too large or binary).</p>
       </div>
-    </div>
+    </Card>
   </div>
 </template>
 

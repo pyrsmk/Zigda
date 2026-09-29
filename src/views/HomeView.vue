@@ -4,6 +4,7 @@ import { api } from '../api.js'
 import { displayName, session } from '../session.js'
 import { STATUS, SYSTEM_EVENTS, ago, eventLabel, isOpen } from '../lib/format.js'
 import Avatar from '../components/Avatar.vue'
+import Card from '../components/Card.vue'
 
 const threads = ref([])
 const loading = ref(Boolean(session.repo))
@@ -43,10 +44,10 @@ function last(thread) {
 <template>
   <div class="page">
     <template v-if="!session.repo">
-      <div class="empty card waiting">
+      <Card class="empty waiting">
         <h1>Almost ready!</h1>
         <p>The owner of the space hasn’t chosen the repository to open yet. Come back a little later.</p>
-      </div>
+      </Card>
     </template>
     <template v-else>
       <h1>Hello {{ session.user.name?.split(' ')[0] || session.user.login }}</h1>
@@ -59,7 +60,7 @@ function last(thread) {
       <div v-else-if="error" class="error">{{ error }}</div>
       <p v-else-if="!threads.length" class="faint">Nothing yet. Go ahead and start the first discussion!</p>
       <div v-else class="feed">
-        <RouterLink v-for="t in threads" :key="t.id" :to="target(t)" class="item card">
+        <Card v-for="t in threads" :key="t.id" :to="target(t)" class="item">
           <Avatar :user="t.author" :size="32" />
           <div class="text">
             <p class="line">
@@ -82,7 +83,7 @@ function last(thread) {
             </span>
             <span class="faint when">{{ ago(t.updated_at) }}</span>
           </div>
-        </RouterLink>
+        </Card>
       </div>
     </template>
   </div>

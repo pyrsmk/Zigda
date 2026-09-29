@@ -2,6 +2,7 @@
 import { useRouter } from 'vue-router'
 import { repoChanged, session } from '../session.js'
 import RepoPicker from '../components/RepoPicker.vue'
+import Card from '../components/Card.vue'
 
 const router = useRouter()
 
@@ -14,7 +15,7 @@ function saved(repo) {
 
 <template>
   <div class="setup">
-    <div class="box card">
+    <Card class="box">
       <img src="/icon.svg" alt="" width="44" height="44" />
       <h1>Welcome {{ session.user.name || session.user.login }}!</h1>
       <p class="muted">
@@ -22,7 +23,7 @@ function saved(repo) {
         to the team, then the branch to work on.
       </p>
       <RepoPicker :current="session.repo" @saved="saved" />
-    </div>
+    </Card>
   </div>
 </template>
 

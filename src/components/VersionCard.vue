@@ -5,6 +5,7 @@ import { displayName, session } from '../session.js'
 import { CONFLICTS, DISCARDED, STATUS, isOpen } from '../lib/format.js'
 import { compact } from '../lib/viewport.js'
 import Avatar from './Avatar.vue'
+import Button from './Button.vue'
 import DiffView from './DiffView.vue'
 import Icon from './Icon.vue'
 
@@ -60,8 +61,8 @@ async function saveEdit() {
     <div v-else-if="editing" class="edit-box" :class="{ writing: compact }" @click.stop>
       <textarea v-model="content" rows="4" class="writing-field" :class="{ mono: !prose }"></textarea>
       <div class="row-actions writing-bar">
-        <button class="btn ghost small" @click="editing = false">Cancel</button>
-        <button class="btn primary small" :disabled="busy || content === before" @click="saveEdit">Save</button>
+        <Button variant="ghost" small :flush="compact" @click="editing = false">Cancel</Button>
+        <Button variant="primary" small :disabled="busy || content === before" @click="saveEdit">Save</Button>
       </div>
     </div>
 
@@ -89,28 +90,33 @@ async function saveEdit() {
     <div v-if="actions && open && !editing" class="decision" @click.stop>
       <template v-if="!mine">
         <span v-if="approvedByMe" class="badge applied"><Icon name="check" :size="12" /> You approved</span>
-        <button
+        <Button
           v-else
-          class="btn ok small"
+          variant="ok"
+          small
+          icon="check"
+          :icon-size="14"
           :disabled="busy || p.status === 'conflict' || Boolean(p.blocked)"
           @click="decide('approve')"
         >
-          <Icon name="check" :size="14" /> Approve
-        </button>
-        <button class="btn danger small" :disabled="busy" @click="decide('reject')">Reject</button>
+          Approve
+        </Button>
+        <Button variant="danger" small :disabled="busy" @click="decide('reject')">Reject</Button>
       </template>
       <template v-else>
-        <RouterLink
+        <Button
           v-if="p.action === 'create'"
           :to="{ name: 'edit', params: { path: p.path.split('/') }, query: { proposal: p.id } }"
-          class="btn small"
+          small
+          icon="pencil"
+          :icon-size="14"
         >
-          <Icon name="pencil" :size="14" /> Edit
-        </RouterLink>
-        <button v-else-if="p.action === 'replace'" class="btn small" :disabled="busy" @click="startEdit">
-          <Icon name="pencil" :size="14" /> Edit
-        </button>
-        <button class="btn ghost small" :disabled="busy" @click="decide('withdraw')">Withdraw</button>
+          Edit
+        </Button>
+        <Button v-else-if="p.action === 'replace'" small icon="pencil" :icon-size="14" :disabled="busy" @click="startEdit">
+          Edit
+        </Button>
+        <Button variant="ghost" small :disabled="busy" @click="decide('withdraw')">Withdraw</Button>
       </template>
     </div>
   </section>

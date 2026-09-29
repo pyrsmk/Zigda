@@ -4,6 +4,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { logout, refreshOverview, session } from './session.js'
 import FileTree from './components/FileTree.vue'
 import Avatar from './components/Avatar.vue'
+import Button from './components/Button.vue'
+import Card from './components/Card.vue'
 import Icon from './components/Icon.vue'
 import { compact } from './lib/viewport.js'
 
@@ -51,9 +53,15 @@ async function signOut() {
 <template>
   <div v-if="chrome" class="shell" :class="{ collapsed: !sidebarOpen }">
     <header class="topbar">
-      <button class="btn ghost small toggle" title="Show or hide files" @click="sidebarOpen = !sidebarOpen">
-        <Icon name="menu" />
-      </button>
+      <Button
+        variant="ghost"
+        small
+        class="toggle"
+        title="Show or hide files"
+        icon="menu"
+        :icon-size="16"
+        @click="sidebarOpen = !sidebarOpen"
+      />
       <RouterLink to="/" class="brand">
         <img src="/icon.svg" alt="" width="26" height="26" />
         <span>Zigda</span>
@@ -79,13 +87,13 @@ async function signOut() {
         <button class="me-button" @click="menuOpen = !menuOpen">
           <Avatar :user="session.user" :size="30" />
         </button>
-        <div v-if="menuOpen" class="menu card" @click.stop>
+        <Card v-if="menuOpen" class="menu" @click.stop>
           <div class="menu-head">
             <strong>{{ session.user.name || session.user.login }}</strong>
             <span class="faint">@{{ session.user.login }}</span>
           </div>
           <button class="menu-item" @click="signOut"><Icon name="logout" /> Sign out</button>
-        </div>
+        </Card>
       </div>
     </header>
     <div v-if="compact && sidebarOpen" class="backdrop" @click="sidebarOpen = false"></div>

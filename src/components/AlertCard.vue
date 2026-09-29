@@ -4,6 +4,7 @@ import { api } from '../api.js'
 import { displayName } from '../session.js'
 import { ago, fullDate } from '../lib/format.js'
 import Avatar from './Avatar.vue'
+import Button from './Button.vue'
 import Icon from './Icon.vue'
 
 const props = defineProps({ alert: Object })
@@ -57,7 +58,7 @@ async function dismiss() {
         <template v-if="target"> · <RouterLink :to="target">See the discussion</RouterLink></template>
       </p>
     </div>
-    <button class="btn small" :disabled="busy" @click="dismiss">Ok</button>
+    <Button small :disabled="busy" @click="dismiss">Ok</Button>
   </article>
 </template>
 

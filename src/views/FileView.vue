@@ -12,6 +12,8 @@ import Composer from '../components/Composer.vue'
 import HistoryPanel from '../components/HistoryPanel.vue'
 import Icon from '../components/Icon.vue'
 import Avatar from '../components/Avatar.vue'
+import Button from '../components/Button.vue'
+import Segmented from '../components/Segmented.vue'
 import { compact, touch } from '../lib/viewport.js'
 
 const props = defineProps({ path: String })
@@ -314,25 +316,30 @@ const crumbs = computed(() => props.path.split('/'))
         </template>
       </div>
       <div class="tools">
-        <div v-if="text !== null" class="segmented">
-          <button :class="{ active: mode === 'formatted' }" @click="mode = 'formatted'">
-            <Icon name="eye" :size="13" /><span class="label">Formatted</span>
-          </button>
-          <button :class="{ active: mode === 'raw' }" @click="mode = 'raw'">
-            <Icon name="code" :size="13" /><span class="label">Raw text</span>
-          </button>
-        </div>
-        <button v-if="file" class="btn ghost small" title="Propose deletion" @click="confirmDelete = !confirmDelete">
-          <Icon name="trash" :size="15" />
-        </button>
+        <Segmented
+          v-if="text !== null"
+          v-model="mode"
+          :options="[
+            { value: 'formatted', label: 'Formatted', icon: 'eye' },
+            { value: 'raw', label: 'Raw text', icon: 'code' },
+          ]"
+        />
+        <Button
+          v-if="file"
+          variant="ghost"
+          small
+          title="Propose deletion"
+          icon="trash"
+          @click="confirmDelete = !confirmDelete"
+        />
       </div>
     </header>
 
     <div v-if="confirmDelete" class="notice confirm">
       Propose deleting this file? It will only take effect once every other team member has approved.
       <div class="confirm-actions">
-        <button class="btn ghost small" @click="confirmDelete = false">Cancel</button>
-        <button class="btn danger small" :disabled="deleting" @click="proposeDelete">Propose deletion</button>
+        <Button variant="ghost" small @click="confirmDelete = false">Cancel</Button>
+        <Button variant="danger" small :disabled="deleting" @click="proposeDelete">Propose deletion</Button>
       </div>
     </div>
 
@@ -379,17 +386,14 @@ const crumbs = computed(() => props.path.split('/'))
 
       <aside v-if="text !== null" class="panel" :class="{ open: sheetOpen }">
         <div class="panel-tabs">
-          <div class="segmented">
-            <button :class="{ active: panel === 'threads' }" @click="panel = 'threads'">
-              <Icon name="message" :size="13" /> Discussions
-            </button>
-            <button :class="{ active: panel === 'history' }" @click="panel = 'history'">
-              <Icon name="history" :size="13" /> History
-            </button>
-          </div>
-          <button class="btn ghost small sheet-close" title="Close" @click="sheetOpen = false">
-            <Icon name="x" :size="15" />
-          </button>
+          <Segmented
+            v-model="panel"
+            :options="[
+              { value: 'threads', label: 'Discussions', icon: 'message' },
+              { value: 'history', label: 'History', icon: 'history' },
+            ]"
+          />
+          <Button variant="ghost" small class="sheet-close" title="Close" icon="x" @click="sheetOpen = false" />
         </div>
         <template v-if="panel === 'threads'">
           <Composer
@@ -421,22 +425,24 @@ const crumbs = computed(() => props.path.split('/'))
               @applied="onApplied"
             />
           </div>
-          <button v-if="resolvedCount" class="btn ghost small toggle-resolved" @click="showResolved = !showResolved">
+          <Button v-if="resolvedCount" variant="ghost" small class="toggle-resolved" @click="showResolved = !showResolved">
             {{ showResolved ? 'Hide' : 'Show' }} closed discussions ({{ resolvedCount }})
-          </button>
+          </Button>
         </template>
         <HistoryPanel v-else :path="path" :sha="file?.sha" />
       </aside>
     </div>
 
-    <button
+    <Button
       v-if="text !== null && !sheetOpen && !bubble"
-      class="btn primary sheet-toggle"
+      variant="primary"
+      class="sheet-toggle"
+      icon="message"
       @click="sheetOpen = true"
     >
-      <Icon name="message" :size="15" /> Discussions
+      Discussions
       <span v-if="openCount" class="sheet-count">{{ openCount }}</span>
-    </button>
+    </Button>
 
     <Teleport to="body">
       <div
@@ -503,12 +509,6 @@ const crumbs = computed(() => props.path.split('/'))
   align-items: center;
   gap: 8px;
   margin-left: auto;
-}
-
-.segmented button {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
 }
 
 .sheet-close,
@@ -747,7 +747,7 @@ const crumbs = computed(() => props.path.split('/'))
     gap: 4px;
   }
 
-  .file-head .label {
+  .file-head :deep(.label) {
     display: none;
   }
 

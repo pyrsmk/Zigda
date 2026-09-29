@@ -5,6 +5,8 @@ import { repoChanged, session } from '../session.js'
 import { ago } from '../lib/format.js'
 import RepoPicker from '../components/RepoPicker.vue'
 import Avatar from '../components/Avatar.vue'
+import Button from '../components/Button.vue'
+import Card from '../components/Card.vue'
 import Icon from '../components/Icon.vue'
 
 const members = ref([])
@@ -63,22 +65,22 @@ function saved(repo) {
   <div class="page">
     <h1>Settings</h1>
 
-    <section class="card block">
+    <Card as="section" class="block">
       <h2><Icon name="branch" /> Repository</h2>
       <template v-if="session.repo && !changingRepo">
         <p>
           The team is working on <strong>{{ session.repo.owner }}/{{ session.repo.name }}</strong>, branch
           <strong>{{ session.repo.branch }}</strong>.
         </p>
-        <button class="btn small" @click="changingRepo = true">Change repository or branch</button>
+        <Button small @click="changingRepo = true">Change repository or branch</Button>
       </template>
       <template v-else>
         <RepoPicker :current="session.repo" @saved="saved" />
-        <button v-if="session.repo" class="btn ghost small cancel" @click="changingRepo = false">Cancel</button>
+        <Button v-if="session.repo" variant="ghost" small class="cancel" @click="changingRepo = false">Cancel</Button>
       </template>
-    </section>
+    </Card>
 
-    <section class="card block">
+    <Card as="section" class="block">
       <h2><Icon name="users" /> Team</h2>
       <p class="muted">
         Invite someone by their GitHub username. They don’t need any access to the repository: Zigda
@@ -86,7 +88,7 @@ function saved(repo) {
       </p>
       <form class="invite" @submit.prevent="invite">
         <input v-model="login" placeholder="GitHub username (e.g. octocat)" />
-        <button class="btn primary" :disabled="inviting || !login.trim()"><Icon name="plus" :size="15" /> Invite</button>
+        <Button variant="primary" icon="plus" :disabled="inviting || !login.trim()">Invite</Button>
       </form>
       <div v-if="error" class="error">{{ error }}</div>
 
@@ -99,10 +101,10 @@ function saved(repo) {
           </div>
           <span v-if="m.role === 'root'" class="badge">Owner</span>
           <template v-else-if="confirmRemove === m.login">
-            <button class="btn ghost small" @click="confirmRemove = null">Cancel</button>
-            <button class="btn danger small" @click="remove(m.login)">Confirm removal</button>
+            <Button variant="ghost" small @click="confirmRemove = null">Cancel</Button>
+            <Button variant="danger" small @click="remove(m.login)">Confirm removal</Button>
           </template>
-          <button v-else class="btn ghost small" @click="confirmRemove = m.login">Remove</button>
+          <Button v-else variant="ghost" small @click="confirmRemove = m.login">Remove</Button>
         </li>
         <li v-for="inv in invitations" :key="inv.login" class="pending">
           <Avatar :user="{ login: inv.login, avatar_url: inv.avatar_url }" :size="34" />
@@ -110,20 +112,20 @@ function saved(repo) {
             <strong>@{{ inv.login }}</strong>
             <span class="faint">Invitation sent {{ ago(inv.created_at) }}, waiting for their first sign-in</span>
           </div>
-          <button class="btn ghost small" @click="remove(inv.login)">Cancel invitation</button>
+          <Button variant="ghost" small @click="remove(inv.login)">Cancel invitation</Button>
         </li>
       </ul>
-    </section>
+    </Card>
 
-    <section class="card block">
+    <Card as="section" class="block">
       <h2><Icon name="refresh" /> GitHub connection</h2>
       <p class="muted">
         Zigda accesses the repository through your account. If GitHub denies access (password changed, access revoked…),
         reconnect it here.
       </p>
       <p v-if="!session.tokenReady" class="notice">GitHub access is not configured.</p>
-      <a href="/api/auth/login?scope=repo" class="btn small">Reconnect my GitHub account</a>
-    </section>
+      <Button href="/api/auth/login?scope=repo" small>Reconnect my GitHub account</Button>
+    </Card>
   </div>
 </template>
 

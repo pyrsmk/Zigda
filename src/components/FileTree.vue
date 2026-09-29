@@ -6,6 +6,7 @@ import { session } from '../session.js'
 import { dirname } from '../../shared/files.js'
 import TreeNode from './TreeNode.vue'
 import Icon from './Icon.vue'
+import Button from './Button.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -114,14 +115,14 @@ function create() {
         <Icon name="search" :size="15" />
         <input v-model="filter" placeholder="Search for a file" />
       </div>
-      <button class="btn ghost small" title="New file" @click="startCreate"><Icon name="plus" /></button>
+      <Button variant="ghost" small title="New file" icon="plus" :icon-size="16" @click="startCreate" />
     </div>
     <form v-if="creating" class="create" @submit.prevent="create">
       <label class="faint">Path of the new file</label>
       <input ref="newInput" v-model="newPath" placeholder="folder/name.md" @keydown.esc="creating = false" />
       <div class="create-actions">
-        <button type="button" class="btn ghost small" @click="creating = false">Cancel</button>
-        <button class="btn primary small">Create</button>
+        <Button type="button" variant="ghost" small @click="creating = false">Cancel</Button>
+        <Button variant="primary" small>Create</Button>
       </div>
     </form>
     <div class="tree-body">

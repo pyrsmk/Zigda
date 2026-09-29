@@ -5,7 +5,8 @@ import { api } from '../api.js'
 import { refreshOverview } from '../session.js'
 import { isProse, language } from '../../shared/files.js'
 import CodeEditor from '../components/CodeEditor.vue'
-import Icon from '../components/Icon.vue'
+import Button from '../components/Button.vue'
+import Card from '../components/Card.vue'
 
 const props = defineProps({ path: String })
 const route = useRoute()
@@ -71,7 +72,7 @@ function cancel() {
 <template>
   <div class="edit-view">
     <header class="edit-head">
-      <button class="btn ghost small" @click="cancel"><Icon name="back" :size="15" /> Back</button>
+      <Button variant="ghost" small icon="back" @click="cancel">Back</Button>
       <div class="title">
         <span class="faint">{{ proposalId ? 'Rework the new file' : 'New file' }}</span>
         <strong>{{ path }}</strong>
@@ -83,7 +84,7 @@ function cancel() {
         <div v-if="loading" class="spinner"></div>
         <CodeEditor v-else-if="!error || text" v-model="text" :language="lang" :prose="prose" />
       </div>
-      <aside class="submit card">
+      <Card as="aside" class="submit">
         <h3>Propose this new file</h3>
         <p class="faint small">
           Nothing is written to the repository until every other team member has approved.
@@ -95,15 +96,10 @@ function cancel() {
           <textarea v-model="message" rows="4" placeholder="What this file is for…"></textarea>
         </template>
         <div v-if="error" class="error">{{ error }}</div>
-        <button
-          class="btn primary"
-          :disabled="busy || loading || !text"
-          @click="submit"
-        >
-          <Icon name="sparkle" :size="15" />
+        <Button variant="primary" icon="sparkle" :disabled="busy || loading || !text" @click="submit">
           {{ proposalId ? 'Update the proposal' : 'Propose' }}
-        </button>
-      </aside>
+        </Button>
+      </Card>
     </div>
   </div>
 </template>
@@ -133,16 +129,6 @@ function cancel() {
 .title strong {
   font-size: 16px;
   overflow-wrap: anywhere;
-}
-
-.edit-head .segmented {
-  margin-left: auto;
-}
-
-.segmented button {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
 }
 
 .workspace {

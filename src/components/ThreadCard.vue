@@ -5,7 +5,8 @@ import { displayName, refreshOverview, session } from '../session.js'
 import { SYSTEM_EVENTS, ago, eventLabel, fullDate, isOpen } from '../lib/format.js'
 import { compact } from '../lib/viewport.js'
 import Avatar from './Avatar.vue'
-import Icon from './Icon.vue'
+import Button from './Button.vue'
+import Card from './Card.vue'
 import PassageQuote from './PassageQuote.vue'
 import VersionCard from './VersionCard.vue'
 
@@ -107,8 +108,9 @@ function number(p) {
 </script>
 
 <template>
-  <article
-    class="thread card"
+  <Card
+    as="article"
+    class="thread"
     :class="{ active, resolved: thread.status === 'resolved', proposing: openVersions.length, code: !prose }"
     @click="emit('select', thread.id)"
   >
@@ -181,16 +183,23 @@ function number(p) {
         <label class="faint">Replace with</label>
         <textarea v-model="wording" rows="4" class="wording writing-field"></textarea>
         <div class="row-actions writing-bar">
-          <button type="button" class="btn ghost small" @click="proposing = false">Cancel</button>
-          <button class="btn primary small" :disabled="busy || wording === quote">
-            <Icon name="sparkle" :size="14" /> Propose
-          </button>
+          <Button type="button" variant="ghost" small :flush="compact" @click="proposing = false">Cancel</Button>
+          <Button variant="primary" small icon="sparkle" :icon-size="14" :disabled="busy || wording === quote">
+            Propose
+          </Button>
         </div>
       </form>
-      <button v-else-if="canPropose" class="btn small propose-button" :disabled="busy" @click="startProposing">
-        <Icon name="pencil" :size="14" />
+      <Button
+        v-else-if="canPropose"
+        small
+        class="propose-button"
+        icon="pencil"
+        :icon-size="14"
+        :disabled="busy"
+        @click="startProposing"
+      >
         {{ versions.length ? 'Propose another version' : 'Modify' }}
-      </button>
+      </Button>
       <form class="reply" :class="{ writing: compact && replying }" @submit.prevent="send">
         <textarea
           v-model="reply"
@@ -202,34 +211,38 @@ function number(p) {
           @keydown.enter.ctrl.prevent="send"
         ></textarea>
         <div class="row-actions writing-bar">
-          <button v-if="compact && replying" type="button" class="btn ghost small" @click="replying = false">
+          <Button v-if="compact && replying" type="button" variant="ghost" small flush @click="replying = false">
             Cancel
-          </button>
+          </Button>
           <template v-else-if="passage">
-            <button
+            <Button
               v-if="thread.status === 'open' && !openVersions.length"
               type="button"
-              class="btn ghost small"
+              variant="ghost"
+              small
+              icon="check"
+              :icon-size="14"
               :disabled="busy"
               @click="setStatus('resolved')"
             >
-              <Icon name="check" :size="14" /> Close
-            </button>
-            <button
+              Close
+            </Button>
+            <Button
               v-else-if="thread.status === 'resolved' && !applied"
               type="button"
-              class="btn ghost small"
+              variant="ghost"
+              small
               :disabled="busy"
               @click="setStatus('open')"
             >
               Reopen
-            </button>
+            </Button>
           </template>
-          <button class="btn primary small" :disabled="busy || !reply.trim()">Send</button>
+          <Button variant="primary" small :disabled="busy || !reply.trim()">Send</Button>
         </div>
       </form>
     </footer>
-  </article>
+  </Card>
 </template>
 
 <style scoped>

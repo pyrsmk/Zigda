@@ -7,6 +7,7 @@ import { imageType, isProse } from '../../shared/files.js'
 import ThreadCard from '../components/ThreadCard.vue'
 import DiffView from '../components/DiffView.vue'
 import Avatar from '../components/Avatar.vue'
+import Card from '../components/Card.vue'
 import Icon from '../components/Icon.vue'
 
 const props = defineProps({ id: String })
@@ -66,7 +67,7 @@ function onApplied() {
       </header>
 
       <div class="layout">
-        <section class="changes card">
+        <Card as="section" class="changes">
           <div class="changes-head">
             <span class="kind">{{ ACTIONS[p.action] }}</span>
             <span v-if="p.action === 'delete'" class="muted">The file will be deleted from the repository.</span>
@@ -76,7 +77,7 @@ function onApplied() {
             <img :src="`/api/raw?path=${encodeURIComponent(p.path)}&v=${p.base_sha}`" :alt="p.path" />
           </div>
           <DiffView v-else-if="!binary" :before="before" :after="after" :prose="prose" />
-        </section>
+        </Card>
         <div class="discussion">
           <ThreadCard :thread="thread" active @updated="thread = $event" @applied="onApplied" />
         </div>

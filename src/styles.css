@@ -96,77 +96,6 @@ a {
   background: var(--accent-soft);
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 15px;
-  border-radius: 999px;
-  font-weight: 700;
-  font-size: 14px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  transition: background 0.15s, transform 0.1s;
-  white-space: nowrap;
-  text-decoration: none;
-  color: var(--text);
-}
-
-.btn:hover:not(:disabled) {
-  background: var(--surface-3);
-}
-
-.btn:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.btn.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fffaf2;
-}
-
-.btn.primary:hover:not(:disabled) {
-  background: #4246b0;
-}
-
-.btn.ok {
-  background: var(--ok);
-  border-color: var(--ok);
-  color: #fbfff5;
-}
-
-.btn.ok:hover:not(:disabled) {
-  background: #527a42;
-}
-
-.btn.danger {
-  background: var(--danger-soft);
-  border-color: transparent;
-  color: var(--danger);
-}
-
-.btn.ghost {
-  background: transparent;
-  border-color: transparent;
-}
-
-.btn.ghost:hover:not(:disabled) {
-  background: var(--surface-2);
-}
-
-.btn.small {
-  padding: 5px 11px;
-  font-size: 13px;
-}
-
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-}
-
 .badge {
   display: inline-flex;
   align-items: center;
@@ -267,28 +196,6 @@ a {
   to {
     transform: rotate(360deg);
   }
-}
-
-.segmented {
-  display: inline-flex;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 3px;
-}
-
-.segmented button {
-  padding: 5px 13px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-dim);
-}
-
-.segmented button.active {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: 0 1px 3px rgba(80, 60, 30, 0.12);
 }
 
 .prose {
@@ -475,14 +382,6 @@ a {
   select,
   .cm-editor .cm-content {
     font-size: 16px !important;
-  }
-
-  .btn.small {
-    padding: 8px 13px;
-  }
-
-  .segmented button {
-    padding: 7px 13px;
   }
 }
 
