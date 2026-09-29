@@ -32,3 +32,10 @@ router.beforeEach(async (to) => {
   if (to.name === 'setup' && session.user.role !== 'root') return { name: 'home' }
   return true
 })
+
+router.onError((error, to) => {
+  const last = Number(sessionStorage.getItem('zigda:reloaded') ?? 0)
+  if (Date.now() - last < 10_000) throw error
+  sessionStorage.setItem('zigda:reloaded', Date.now())
+  window.location.assign(to.fullPath)
+})
