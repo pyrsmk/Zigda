@@ -82,7 +82,7 @@ export async function loadThreads(where, params) {
     ...approvals.map((a) => a.user_id),
     ...memberIds,
   ])
-  return threads.map((t) => {
+  const views = threads.map((t) => {
     const versions = proposals
       .filter((p) => p.thread_id === t.id)
       .map((p) => proposalView(p, users, approvals, memberIds, blocked[p.id]))
@@ -105,6 +105,7 @@ export async function loadThreads(where, params) {
         .map((m) => ({ id: m.id, kind: m.kind, body: m.body, created_at: m.created_at, author: users[m.author_id] ?? null })),
     }
   })
+  return views.filter((t) => t.kind !== 'proposal' || t.proposal)
 }
 
 export async function loadThread(id) {
@@ -145,13 +146,16 @@ export async function setThreadStatus(threadId, status, userId) {
 
 export async function purgePath(path, via = 'repository') {
   await recordFileDeleted(path, via)
-  await query(
+  const removed = await query(
     `delete from threads t where t.path = $1 and not exists (
        select 1 from proposals p where p.thread_id = t.id
          and ((p.action = 'create' and p.status in ('pending', 'conflict')) or (p.action = 'delete' and p.status = 'applied'))
-     )`,
+     ) returning id`,
     [path],
   )
+  if (via === 'repository' && removed.length) {
+    await query('insert into file_removals (path, discussions) values ($1, $2)', [path, removed.length])
+  }
 }
 
 export async function closeVanished(thread, userId) {

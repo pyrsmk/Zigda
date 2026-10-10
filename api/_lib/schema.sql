@@ -110,3 +110,12 @@ create table if not exists alert_views (
   user_id  bigint not null references users(id),
   primary key (alert_id, user_id)
 );
+
+create table if not exists file_removals (
+  id          uuid primary key default gen_random_uuid(),
+  path        text not null,
+  discussions integer not null,
+  created_at  timestamptz not null default now()
+);
+
+create index if not exists file_removals_created_idx on file_removals (created_at desc);

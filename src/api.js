@@ -71,7 +71,7 @@ export const api = {
   history: (path) => request(`/history?path=${q(path)}`).then((d) => d.commits),
   commit: (path, sha) => request(`/history?path=${q(path)}&sha=${sha}`).then((d) => d.commit),
   overview: () => request('/overview'),
-  activity: () => request('/activity').then((d) => d.threads),
+  activity: () => request('/activity'),
 
   threads: (path) => request(`/threads?path=${q(path)}`).then((d) => d.threads),
   createThread: (input) => request('/threads', { method: 'POST', body: input }).then((d) => d.thread),
