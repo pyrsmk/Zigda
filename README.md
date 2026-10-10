@@ -97,13 +97,13 @@ Install Run with:
 gem install run_tasks
 ```
 
-Create a second GitHub OAuth App for local use, with `http://localhost:5173` as homepage URL and
-`http://localhost:5173/api/auth/callback` as callback URL.
+Create a second GitHub OAuth App for local use, with `http://localhost:6660` as homepage URL and
+`http://localhost:6660/api/auth/callback` as callback URL.
 
 ```bash
 run install
 cp .env.example .env   # fill in the variables
-run dev                # app and API on http://localhost:5173
+run dev                # app and API on http://localhost:6660
 ```
 
 To create the database tables manually:

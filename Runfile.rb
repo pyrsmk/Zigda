@@ -5,7 +5,7 @@ task :install do
   run "npm install"
 end
 
-# Start the app and API on http://localhost:5173
+# Start the app and API on http://localhost:6660
 task :dev do
   run "npx vite dev"
 end

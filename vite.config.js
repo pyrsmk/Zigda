@@ -6,6 +6,10 @@ import { apiPlugin } from './dev/api-plugin.js'
 export default defineConfig(({ mode }) => {
   Object.assign(process.env, loadEnv(mode, process.cwd(), ''))
   return {
+    server: {
+      port: 6660,
+      strictPort: true,
+    },
     plugins: [
       vue(),
       apiPlugin(),
