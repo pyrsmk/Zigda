@@ -4,6 +4,7 @@ import { readFile, repoContext } from '../../_lib/repo.js'
 import { createThread, loadThreads } from '../../_lib/threads.js'
 import { checkContent } from '../../_lib/proposals.js'
 import { listAlerts } from '../../_lib/alerts.js'
+import { checkFileUnlocked } from '../../_lib/locks.js'
 
 const OPEN = `('pending', 'applying', 'conflict')`
 
@@ -47,6 +48,7 @@ export default handler({
       if (await readFile(ctx, path)) throw new HttpError(409, 'file_exists', 'This file already exists')
       content = input.content
     } else if (input.action === 'delete') {
+      await checkFileUnlocked(path)
       const current = await readFile(ctx, path)
       if (!current) throw new HttpError(404, 'file_not_found', 'File not found')
       baseSha = current.sha

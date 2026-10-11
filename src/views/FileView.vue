@@ -3,12 +3,13 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api.js'
 import { refreshOverview, repoChanged, session, displayName } from '../session.js'
-import { codeTree, markdownTree, plainTree, renderHtml, selectionRange } from '../lib/render.js'
+import { codeTree, markdownTree, outline, plainTree, renderHtml, sectioned, selectionRange, slice } from '../lib/render.js'
 import { ago, isOpen } from '../lib/format.js'
 import { makeAnchor, locate, overlaps } from '../../shared/anchor.js'
 import { imageType, isMarkdown, isProse, language } from '../../shared/files.js'
 import ThreadCard from '../components/ThreadCard.vue'
 import Composer from '../components/Composer.vue'
+import PassageEditor from '../components/PassageEditor.vue'
 import HistoryPanel from '../components/HistoryPanel.vue'
 import Icon from '../components/Icon.vue'
 import Avatar from '../components/Avatar.vue'
@@ -27,6 +28,7 @@ const threads = ref([])
 const proposals = ref([])
 const activeId = ref(null)
 const draft = ref(null)
+const editing = ref(null)
 const bubble = ref(null)
 const bubbleEl = ref(null)
 const panel = ref('threads')
@@ -70,6 +72,8 @@ const tree = computed(() => {
   return plainTree(text.value)
 })
 
+const sections = computed(() => (layout.value === 'markdown' ? outline(tree.value, text.value) : []))
+
 const placed = computed(() =>
   threads.value.map((thread) => {
     if (!thread.anchor || text.value === null) return { thread, range: null }
@@ -91,17 +95,24 @@ const visible = computed(() =>
 const resolvedCount = computed(() => threads.value.filter((t) => t.status === 'resolved').length)
 const openCount = computed(() => threads.value.filter((t) => t.status === 'open').length)
 
-const html = computed(() => {
-  if (!tree.value) return ''
-  const ranges = visible.value
+const ranges = computed(() => {
+  const list = visible.value
     .filter(({ range }) => range)
     .map(({ thread, range }) => ({
       ...range,
       id: thread.id,
       tone: thread.id === activeId.value ? 'active' : thread.proposals.some(isOpen) ? 'suggestion' : 'passage',
     }))
-  if (draft.value) ranges.push({ ...draft.value.range, id: 'draft', tone: 'draft' })
-  return renderHtml(tree.value, ranges)
+  if (draft.value) list.push({ ...draft.value.range, id: 'draft', tone: 'draft' })
+  return list
+})
+
+const parts = computed(() => {
+  if (!tree.value) return []
+  const render = (tree) => ({ html: renderHtml(tree, ranges.value) })
+  const section = editing.value?.section
+  if (!section) return [render(sectioned(tree.value, sections.value))]
+  return [render(slice(tree.value, 0, section.index)), { editor: true }, render(slice(tree.value, section.last))]
 })
 
 async function loadFile() {
@@ -129,6 +140,7 @@ async function load() {
   threads.value = []
   proposals.value = []
   draft.value = null
+  releaseEdit()
   activeId.value = null
   bubble.value = null
   confirmDelete.value = false
@@ -147,20 +159,25 @@ watch(() => props.path, load, { immediate: true })
 
 let tick = 0
 let timer
+let heartbeat
 function poll() {
   if (document.visibilityState !== 'visible' || loading.value) return
   loadThreads()
-  if (++tick % 4 === 0 && !draft.value) loadFile()
+  if (++tick % 4 === 0 && !draft.value && !editing.value) loadFile()
 }
 
 onMounted(() => {
   timer = setInterval(poll, 15_000)
   document.addEventListener('selectionchange', onSelectionChange)
   document.addEventListener('mousedown', onDocumentMouseDown)
+  window.addEventListener('pagehide', onPageHide)
 })
 
 onBeforeUnmount(() => {
+  releaseEdit()
   clearInterval(timer)
+  clearInterval(heartbeat)
+  window.removeEventListener('pagehide', onPageHide)
   clearTimeout(settle)
   document.removeEventListener('selectionchange', onSelectionChange)
   document.removeEventListener('mousedown', onDocumentMouseDown)
@@ -173,31 +190,32 @@ function trimRange(start, end) {
   return end > start ? { start, end } : null
 }
 
-function takenBy(range) {
-  return placed.value.find(
-    ({ thread, range: other }) => thread.status === 'open' && other && overlaps(other, range),
-  )?.thread
+function openIn(range) {
+  return placed.value
+    .filter(({ thread, range: other }) => thread.status === 'open' && other && overlaps(other, range))
+    .map(({ thread }) => thread)
 }
 
-async function openBubble(range, line) {
-  const taken = takenBy(range)?.id ?? null
+async function showBubble(state, line, beside = true) {
   if (touch.value) {
-    bubble.value = { ...range, taken, docked: true }
+    bubble.value = { ...state, docked: true }
     return
   }
-  bubble.value = {
-    ...range,
-    taken,
-    top: (line.top + line.bottom) / 2 - 12,
-    left: line.right + 6,
-  }
+  const above = line.top < 36 ? line.bottom + 4 : line.top - 28
+  bubble.value = beside
+    ? { ...state, top: (line.top + line.bottom) / 2 - 12, left: line.right + 6 }
+    : { ...state, top: above, left: line.left }
   await nextTick()
   const limit = contentArea.value.getBoundingClientRect().right - 8
   const width = bubbleEl.value.offsetWidth
   if (bubble.value.left + width > limit) {
     bubble.value.left = Math.min(line.right, limit) - width
-    bubble.value.top = line.top - 28
+    bubble.value.top = above
   }
+}
+
+function openBubble(range, line) {
+  showBubble({ ...range, taken: openIn(range)[0]?.id ?? null }, line)
 }
 
 function captureSelection() {
@@ -211,6 +229,7 @@ function captureSelection() {
 let settle
 function onSelectionChange() {
   clearTimeout(settle)
+  if (bubble.value?.scope) return
   if (window.getSelection()?.isCollapsed) {
     if (bubble.value?.docked) settle = setTimeout(() => (bubble.value = null), 300)
     else bubble.value = null
@@ -228,14 +247,14 @@ function onDocumentMouseDown(event) {
 }
 
 function openTaken() {
-  const id = bubble.value.taken
+  const id = bubble.value.taken ?? bubble.value.blocked[0].id
   bubble.value = null
   window.getSelection()?.removeAllRanges()
   select(id)
 }
 
-function startDraft(kind, { start, end }) {
-  draft.value = { kind, range: { start, end }, anchor: makeAnchor(text.value, start, end) }
+function startDraft({ start, end }) {
+  draft.value = { range: { start, end }, anchor: makeAnchor(text.value, start, end) }
   bubble.value = null
   activeId.value = null
   panel.value = 'threads'
@@ -243,7 +262,70 @@ function startDraft(kind, { start, end }) {
   window.getSelection()?.removeAllRanges()
 }
 
+let locking = false
+async function startEdit(range, section, button) {
+  if (locking) return
+  const scope = section ? 'section' : 'file'
+  const line = button.getBoundingClientRect()
+  const blocked = openIn(range)
+  if (blocked.length) {
+    showBubble({ blocked, scope }, line, false)
+    return
+  }
+  const anchor = makeAnchor(text.value, range.start, range.end)
+  locking = true
+  try {
+    const lock = await api.lock({ path: props.path, anchor })
+    bubble.value = null
+    draft.value = null
+    editing.value = { section, anchor, lockId: lock.id }
+  } catch (err) {
+    const holder = err.details?.holder
+    const note = !holder
+      ? err.message
+      : holder.id === session.user.id
+        ? `You are already editing this ${scope} elsewhere`
+        : `${displayName(holder)} is already editing this ${scope}`
+    showBubble({ note, scope }, line, false)
+  } finally {
+    locking = false
+  }
+}
+
+function releaseEdit() {
+  if (editing.value) api.releaseLock(editing.value.lockId).catch(() => {})
+  editing.value = null
+}
+
+function onPageHide() {
+  if (editing.value) api.releaseLock(editing.value.lockId, true).catch(() => {})
+}
+
+watch(
+  () => editing.value?.lockId,
+  (id) => {
+    clearInterval(heartbeat)
+    if (id) heartbeat = setInterval(() => api.renewLock(id).catch(() => {}), 30_000)
+  },
+)
+
+function editFile(event) {
+  startEdit({ start: 0, end: text.value.length }, null, event.currentTarget)
+}
+
+function onEdited(thread) {
+  editing.value = null
+  threads.value.push(thread)
+  select(thread.id)
+}
+
 function onContentClick(event) {
+  const pencil = event.target.closest('.section-edit')
+  if (pencil) {
+    const section = sections.value[pencil.dataset.section]
+    startEdit(section, section, pencil)
+    return
+  }
   const link = event.target.closest('a[data-internal]')
   if (link) {
     event.preventDefault()
@@ -318,11 +400,21 @@ const crumbs = computed(() => props.path.split('/'))
       <div class="tools">
         <Segmented
           v-if="text !== null"
+          :class="{ hidden: editing }"
           v-model="mode"
           :options="[
             { value: 'formatted', label: 'Formatted', icon: 'eye' },
             { value: 'raw', label: 'Raw text', icon: 'code' },
           ]"
+        />
+        <Button
+          v-if="text"
+          :class="{ hidden: editing }"
+          variant="ghost"
+          small
+          title="Edit the whole file"
+          icon="pencil"
+          @click="editFile"
         />
         <Button
           v-if="file"
@@ -369,6 +461,18 @@ const crumbs = computed(() => props.path.split('/'))
           <img :src="`/api/raw?path=${encodeURIComponent(path)}&v=${file.sha}`" :alt="path" />
         </div>
         <div v-else-if="text === null" class="empty">This file is not text and cannot be displayed.</div>
+        <div v-else-if="editing && !editing.section" class="paper editing">
+          <PassageEditor
+            :anchor="editing.anchor"
+            :lock-id="editing.lockId"
+            :path="path"
+            :sha="file.sha"
+            :language="lang"
+            :prose="prose"
+            @cancel="releaseEdit"
+            @created="onEdited"
+          />
+        </div>
         <div v-else class="paper" :class="layout">
           <div v-if="layout === 'code' || layout === 'raw-code'" class="gutter" aria-hidden="true">
             <span v-for="n in lineCount" :key="n">{{ n }}</span>
@@ -379,8 +483,23 @@ const crumbs = computed(() => props.path.split('/'))
             :class="{ prose: layout === 'markdown' }"
             @mouseup="captureSelection"
             @click="onContentClick"
-            v-html="html"
-          ></div>
+          >
+            <template v-for="(part, i) in parts" :key="i">
+              <PassageEditor
+                v-if="part.editor"
+                class="section-editor"
+                :anchor="editing.anchor"
+                :lock-id="editing.lockId"
+                :path="path"
+                :sha="file.sha"
+                :language="lang"
+                :prose="prose"
+                @cancel="releaseEdit"
+                @created="onEdited"
+              />
+              <div v-else class="part" v-html="part.html"></div>
+            </template>
+          </div>
         </div>
       </section>
 
@@ -406,7 +525,7 @@ const crumbs = computed(() => props.path.split('/'))
             @created="onCreated"
           />
           <p v-if="!visible.length && !draft" class="hint faint">
-            Select a passage of the text to comment on it or modify it.
+            Select a passage to comment on it, or use a pencil to propose a change.
           </p>
           <div
             v-for="{ thread, range } in visible"
@@ -434,7 +553,7 @@ const crumbs = computed(() => props.path.split('/'))
     </div>
 
     <Button
-      v-if="text !== null && !sheetOpen && !bubble"
+      v-if="text !== null && !sheetOpen && !bubble && !editing"
       variant="primary"
       class="sheet-toggle"
       icon="message"
@@ -453,17 +572,18 @@ const crumbs = computed(() => props.path.split('/'))
         :style="bubble.docked ? null : { top: `${bubble.top}px`, left: `${bubble.left}px` }"
         @mousedown.prevent
       >
-        <button v-if="bubble.taken" @click="openTaken">
+        <span v-if="bubble.note" class="note"><Icon name="pencil" :size="12" /> {{ bubble.note }}</span>
+        <button v-else-if="bubble.blocked" @click="openTaken">
+          <Icon name="message" :size="12" />
+          {{ bubble.blocked.length }} {{ bubble.blocked.length > 1 ? 'discussions' : 'discussion' }} already open on
+          this {{ bubble.scope }}: show
+        </button>
+        <button v-else-if="bubble.taken" @click="openTaken">
           <Icon name="message" :size="12" /> Already under discussion: open it
         </button>
-        <template v-else>
-          <button @click="startDraft('comment', bubble)">
-            <Icon name="message" :size="12" /> Comment
-          </button>
-          <button @click="startDraft('version', bubble)">
-            <Icon name="pencil" :size="12" /> Modify
-          </button>
-        </template>
+        <button v-else @click="startDraft(bubble)">
+          <Icon name="message" :size="12" /> Comment
+        </button>
       </div>
     </Teleport>
   </div>
@@ -509,6 +629,10 @@ const crumbs = computed(() => props.path.split('/'))
   align-items: center;
   gap: 8px;
   margin-left: auto;
+}
+
+.tools .hidden {
+  visibility: hidden;
 }
 
 .sheet-close,
@@ -643,6 +767,79 @@ const crumbs = computed(() => props.path.split('/'))
   padding: 0 20px 0 14px;
 }
 
+.paper.editing {
+  padding: 0;
+  overflow: hidden;
+}
+
+.paper.editing > .passage-editor {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.part {
+  display: contents;
+}
+
+.content :deep(.part:first-child > :first-child),
+.content :deep(.part:first-child > section:first-child > :first-child) {
+  margin-top: 0;
+}
+
+.section-editor {
+  margin: 1.2em -12px;
+}
+
+.section-editor:first-child {
+  margin-top: 0;
+}
+
+.content :deep(section > :first-child) {
+  position: relative;
+}
+
+.content :deep(.section-edit) {
+  position: absolute;
+  top: 0;
+  right: -34px;
+  display: flex;
+  align-items: center;
+  height: 1.3em;
+  padding: 0 4px;
+  color: var(--accent);
+  opacity: 0.35;
+  user-select: none;
+  transition: opacity 0.15s;
+}
+
+.content :deep(.section-edit svg) {
+  width: 0.7em;
+  min-width: 15px;
+  height: auto;
+}
+
+.content :deep(section) {
+  border-radius: 4px;
+  transition: background 0.15s, box-shadow 0.15s, outline-color 0.15s;
+  outline: 1px dashed transparent;
+  outline-offset: 10px;
+}
+
+@media (hover: hover) {
+  .content :deep(.section-edit:hover) {
+    opacity: 1;
+  }
+
+  .content :deep(section:has(> :first-child > .section-edit:hover)) {
+    --section-hl: color-mix(in srgb, var(--accent-soft) 50%, var(--surface));
+    background: var(--section-hl);
+    box-shadow: 0 0 0 10px var(--section-hl);
+    outline-color: var(--accent);
+  }
+}
+
 .image-box {
   display: flex;
   justify-content: center;
@@ -712,6 +909,18 @@ const crumbs = computed(() => props.path.split('/'))
   white-space: nowrap;
 }
 
+.bubble .note {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  color: #fbf4e6;
+  padding: 0 9px 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .bubble button:hover {
   background: rgba(255, 255, 255, 0.14);
 }
@@ -775,6 +984,18 @@ const crumbs = computed(() => props.path.split('/'))
 
   .paper.plain .content {
     font-size: 16px;
+  }
+
+  .paper.markdown {
+    padding-right: 34px;
+  }
+
+  .content :deep(.section-edit) {
+    right: -30px;
+  }
+
+  .section-editor {
+    margin: 1em -8px;
   }
 
   .image-box {

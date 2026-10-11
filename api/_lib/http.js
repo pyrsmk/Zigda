@@ -1,10 +1,11 @@
 import { currentUser } from './session.js'
 
 export class HttpError extends Error {
-  constructor(status, code, message = code) {
+  constructor(status, code, message = code, details = {}) {
     super(message)
     this.status = status
     this.code = code
+    this.details = details
   }
 }
 
@@ -26,7 +27,7 @@ export function handler(routes, { auth = 'member' } = {}) {
       }
       await route(req, res)
     } catch (err) {
-      if (err instanceof HttpError) return send(res, err.status, { code: err.code, error: err.message })
+      if (err instanceof HttpError) return send(res, err.status, { code: err.code, error: err.message, ...err.details })
       console.error(`[${method} ${req.url}]`, err)
       send(res, 500, { code: 'server_error', error: err.message ?? 'Unexpected error' })
     }

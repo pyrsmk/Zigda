@@ -5,23 +5,18 @@ import { refreshOverview } from '../session.js'
 import { compact } from '../lib/viewport.js'
 import Button from './Button.vue'
 import Card from './Card.vue'
-import Segmented from './Segmented.vue'
 import PassageQuote from './PassageQuote.vue'
 
 const props = defineProps({ draft: Object, path: String, sha: String, prose: Boolean })
 const emit = defineEmits(['cancel', 'created'])
 
 const text = ref('')
-const replacement = ref('')
 const busy = ref(false)
 const error = ref('')
 const form = ref(null)
 const quoteOpen = ref(false)
 
-const proposing = computed(() => props.draft.kind === 'version')
-const ready = computed(() =>
-  proposing.value ? replacement.value !== props.draft.anchor.quote : Boolean(text.value.trim()),
-)
+const ready = computed(() => Boolean(text.value.trim()))
 
 async function focus() {
   await nextTick()
@@ -30,17 +25,14 @@ async function focus() {
 
 watch(
   () => props.draft,
-  (draft) => {
+  () => {
     text.value = ''
-    replacement.value = draft?.anchor.quote ?? ''
     error.value = ''
     quoteOpen.value = false
     focus()
   },
   { immediate: true },
 )
-
-watch(() => props.draft?.kind, focus)
 
 async function submit() {
   if (!ready.value) return
@@ -51,8 +43,7 @@ async function submit() {
       path: props.path,
       anchor: props.draft.anchor,
       baseSha: props.sha,
-      body: proposing.value ? undefined : text.value,
-      replacement: proposing.value ? replacement.value : undefined,
+      body: text.value,
     })
     refreshOverview()
     emit('created', thread)
@@ -69,17 +60,9 @@ async function submit() {
     ref="form"
     as="form"
     class="composer"
-    :class="{ code: !prose, writing: compact }"
+    :class="{ writing: compact }"
     @submit.prevent="submit"
   >
-    <Segmented
-      v-model="draft.kind"
-      :icon-size="12"
-      :options="[
-        { value: 'comment', label: 'Comment', icon: compact ? 'message' : null },
-        { value: 'version', label: 'Modify', icon: compact ? 'pencil' : null },
-      ]"
-    />
     <PassageQuote
       :anchor="draft.anchor"
       :code="!prose"
@@ -87,12 +70,7 @@ async function submit() {
       :class="{ open: quoteOpen }"
       @click="quoteOpen = !quoteOpen"
     />
-    <template v-if="proposing">
-      <label class="faint">Replace with</label>
-      <textarea v-model="replacement" rows="4" class="replacement writing-field"></textarea>
-    </template>
     <textarea
-      v-else
       v-model="text"
       class="writing-field"
       rows="3"
@@ -116,11 +94,11 @@ async function submit() {
       <Button
         variant="primary"
         small
-        :icon="proposing ? 'sparkle' : 'message'"
+        icon="message"
         :icon-size="14"
         :disabled="busy || !ready"
       >
-        {{ proposing ? 'Propose' : 'Post' }}
+        Post
       </Button>
     </div>
   </Card>
@@ -135,30 +113,11 @@ async function submit() {
   border-color: var(--accent);
 }
 
-.segmented {
-  align-self: flex-start;
-}
-
 .quote {
   margin: 2px 0;
   border-left-color: var(--accent);
   max-height: 6em;
   overflow: auto;
-}
-
-label {
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.replacement {
-  font-family: var(--serif);
-}
-
-.code .replacement {
-  font-family: var(--mono);
-  font-size: 13px;
-  tab-size: 4;
 }
 
 textarea {

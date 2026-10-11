@@ -119,3 +119,14 @@ create table if not exists file_removals (
 );
 
 create index if not exists file_removals_created_idx on file_removals (created_at desc);
+
+create table if not exists edit_locks (
+  id         uuid primary key default gen_random_uuid(),
+  path       text not null,
+  anchor     jsonb not null,
+  user_id    bigint not null references users(id),
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null
+);
+
+create index if not exists edit_locks_path_idx on edit_locks (path, expires_at);

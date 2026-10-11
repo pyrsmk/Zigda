@@ -1,26 +1,9 @@
 import { body, handler, HttpError, param, send } from '../../_lib/http.js'
 import { readFile, repoContext } from '../../_lib/repo.js'
-import { createThread, isTaken, loadThread, loadThreads, purgePath } from '../../_lib/threads.js'
+import { checkAnchor, createThread, isTaken, loadThread, loadThreads, purgePath } from '../../_lib/threads.js'
+import { checkUnlocked, holdsLock, releaseLock } from '../../_lib/locks.js'
 import { addVersion } from '../../_lib/proposals.js'
 import { locate, makeAnchor } from '../../../shared/anchor.js'
-
-function checkAnchor(anchor) {
-  const valid =
-    anchor &&
-    Number.isInteger(anchor.start) &&
-    Number.isInteger(anchor.end) &&
-    anchor.end > anchor.start &&
-    typeof anchor.quote === 'string' &&
-    anchor.quote.length === anchor.end - anchor.start
-  if (!valid) throw new HttpError(400, 'invalid_anchor', 'A text selection is required')
-  return {
-    start: anchor.start,
-    end: anchor.end,
-    quote: anchor.quote,
-    prefix: String(anchor.prefix ?? ''),
-    suffix: String(anchor.suffix ?? ''),
-  }
-}
 
 export default handler({
   GET: async (req, res) => {
@@ -45,7 +28,9 @@ export default handler({
     if (current.binary) throw new HttpError(400, 'file_binary', 'Binary files cannot be discussed')
     const place = locate(current.content, anchor)
     if (!place) throw new HttpError(409, 'passage_missing', 'The passage has changed, reload the file')
-    if (await isTaken(input.path, current.content, place)) {
+    const held = proposing && input.lockId ? await holdsLock(input.lockId, req.user.id) : false
+    if (proposing) await checkUnlocked(input.path, current.content, place, held ? input.lockId : null)
+    if (!held && (await isTaken(input.path, current.content, place))) {
       throw new HttpError(409, 'passage_taken', 'This passage is already under discussion')
     }
 
@@ -58,6 +43,7 @@ export default handler({
       body: input.body,
     })
     if (proposing) await addVersion(thread.id, req.user, { content: input.replacement }, { announce: false })
+    if (held) await releaseLock(input.lockId, req.user.id)
     send(res, 201, { thread: await loadThread(thread.id) })
   },
 })

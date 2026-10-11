@@ -6,6 +6,8 @@ import authLogin from './_routes/auth/login.js'
 import authLogout from './_routes/auth/logout.js'
 import file from './_routes/file.js'
 import history from './_routes/history.js'
+import lock from './_routes/locks/[id].js'
+import locks from './_routes/locks/index.js'
 import me from './_routes/me.js'
 import member from './_routes/members/[login].js'
 import members from './_routes/members/index.js'
@@ -33,6 +35,8 @@ const routes = [
   ['auth/logout', authLogout],
   ['file', file],
   ['history', history],
+  ['locks', locks],
+  ['locks/:id', lock],
   ['me', me],
   ['members', members],
   ['members/:login', member],

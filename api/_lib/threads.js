@@ -186,3 +186,21 @@ export async function isTaken(path, text, place, exceptId = null) {
     return range && overlaps(range, place)
   })
 }
+
+export function checkAnchor(anchor) {
+  const valid =
+    anchor &&
+    Number.isInteger(anchor.start) &&
+    Number.isInteger(anchor.end) &&
+    anchor.end > anchor.start &&
+    typeof anchor.quote === 'string' &&
+    anchor.quote.length === anchor.end - anchor.start
+  if (!valid) throw new HttpError(400, 'invalid_anchor', 'A text selection is required')
+  return {
+    start: anchor.start,
+    end: anchor.end,
+    quote: anchor.quote,
+    prefix: String(anchor.prefix ?? ''),
+    suffix: String(anchor.suffix ?? ''),
+  }
+}

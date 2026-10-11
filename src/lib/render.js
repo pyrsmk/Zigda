@@ -6,6 +6,7 @@ import { toHtml } from 'hast-util-to-html'
 import { createLowlight, common } from 'lowlight'
 import python from 'highlight.js/lib/languages/python'
 import { resolvePath } from '../../shared/files.js'
+import { ICONS } from './icons.js'
 
 const GDSCRIPT_KEYWORDS = [
   'extends', 'class_name', 'func', 'var', 'const', 'signal', 'enum', 'static', 'await', 'match', 'when',
@@ -143,6 +144,66 @@ export function codeTree(source, lang) {
 
 export function plainTree(source) {
   return { type: 'root', children: [{ type: 'text', value: source, offset: 0 }] }
+}
+
+const HEADING = /^h([1-6])$/
+
+export function outline(tree, source) {
+  const heads = tree.children.flatMap((node, index) => {
+    const level = HEADING.exec(node.tagName ?? '')?.[1]
+    return level && node.position ? [{ index, level: Number(level), start: node.position.start.offset }] : []
+  })
+  return heads.map((head, i) => {
+    const next = heads.slice(i + 1).find((other) => other.level <= head.level)
+    let end = next ? next.start : source.length
+    while (end > head.start && /\s/.test(source[end - 1])) end--
+    return { ...head, end, last: next ? next.index : tree.children.length }
+  })
+}
+
+function element(tagName, properties, children = []) {
+  return { type: 'element', tagName, properties, children }
+}
+
+function pencil(index) {
+  const icon = element(
+    'svg',
+    {
+      width: 16,
+      height: 16,
+      viewBox: '0 0 24 24',
+      fill: 'none',
+      stroke: 'currentColor',
+      strokeWidth: 2,
+      strokeLinecap: 'round',
+      strokeLinejoin: 'round',
+      ariaHidden: 'true',
+    },
+    [element('path', { d: ICONS.pencil })],
+  )
+  return element('button', { type: 'button', className: ['section-edit'], dataSection: String(index), title: 'Edit this section' }, [icon])
+}
+
+export function sectioned(tree, sections) {
+  const heads = new Map(sections.map((section, i) => [section.index, { ...section, i }]))
+  const root = { ...tree, children: [] }
+  const stack = [{ level: 0, node: root }]
+  tree.children.forEach((child, index) => {
+    const head = heads.get(index)
+    if (head) {
+      while (stack.at(-1).level >= head.level) stack.pop()
+      const wrapper = element('section', { className: ['section'] })
+      stack.at(-1).node.children.push(wrapper)
+      stack.push({ level: head.level, node: wrapper })
+      child = { ...child, children: [...child.children, pencil(head.i)] }
+    }
+    stack.at(-1).node.children.push(child)
+  })
+  return root
+}
+
+export function slice(tree, from, to) {
+  return { ...tree, children: tree.children.slice(from, to) }
 }
 
 function segment(node, ranges) {

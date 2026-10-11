@@ -24,6 +24,7 @@ const MESSAGES = {
   invalid_anchor: 'Select a passage of the text.',
   passage_missing: 'This passage has been changed in the repository in the meantime.',
   passage_taken: 'This passage is already under discussion.',
+  passage_locked: 'Someone is already editing this passage.',
   version_exists: 'You already have a version in this discussion: edit it instead.',
   versions_pending: 'Some versions are still waiting for a decision.',
   thread_closed: 'This discussion is closed.',
@@ -32,22 +33,24 @@ const MESSAGES = {
 }
 
 export class ApiError extends Error {
-  constructor(status, code, message) {
+  constructor(status, code, message, details) {
     super(message)
     this.status = status
     this.code = code
+    this.details = details
   }
 }
 
-async function request(path, { method = 'GET', body } = {}) {
+async function request(path, { method = 'GET', body, keepalive } = {}) {
   const res = await fetch(`/api${path}`, {
     method,
+    keepalive,
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    throw new ApiError(res.status, data.code, MESSAGES[data.code] ?? `The server responded with ${res.status}.`)
+    throw new ApiError(res.status, data.code, MESSAGES[data.code] ?? `The server responded with ${res.status}.`, data)
   }
   return data
 }
@@ -74,6 +77,9 @@ export const api = {
   activity: () => request('/activity'),
 
   threads: (path) => request(`/threads?path=${q(path)}`).then((d) => d.threads),
+  lock: (input) => request('/locks', { method: 'POST', body: input }).then((d) => d.lock),
+  renewLock: (id) => request(`/locks/${id}`, { method: 'PATCH' }),
+  releaseLock: (id, keepalive) => request(`/locks/${id}`, { method: 'DELETE', keepalive }),
   createThread: (input) => request('/threads', { method: 'POST', body: input }).then((d) => d.thread),
   addVersion: (id, input) =>
     request(`/threads/${id}/proposals`, { method: 'POST', body: input }).then((d) => d.thread),
