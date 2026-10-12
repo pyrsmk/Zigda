@@ -51,8 +51,8 @@ Zigda is designed to run on [Vercel](https://vercel.com) with a Postgres databas
 
 On GitHub, go to *Settings → Developer settings → OAuth Apps → New OAuth App*:
 
-- **Homepage URL**: `https://your-domain.vercel.app`
-- **Authorization callback URL**: `https://your-domain.vercel.app/api/auth/callback`
+- **Homepage URL**: `https://your-domain.com`
+- **Authorization callback URL**: `https://your-domain.com/api/auth/callback`
 
 Copy the *Client ID* and generate a *Client secret*.
 
@@ -60,7 +60,7 @@ Copy the *Client ID* and generate a *Client secret*.
 
 Create a Supabase project and copy its Postgres connection string
 (*Connect → Transaction pooler*, port 6543). The Supabase integration from the Vercel marketplace works
-too: it provides `POSTGRES_URL`, which is picked up automatically.
+too: it provides `POSTGRES_URL`, which is picked up automatically, so you don't need to set `DATABASE_URL`.
 
 Tables are created automatically on first use.
 
@@ -70,7 +70,7 @@ Import the repository into Vercel and set the following environment variables:
 
 | Variable | Description |
 | --- | --- |
-| `DATABASE_URL` | Postgres connection string (or `POSTGRES_URL` via the Supabase integration) |
+| `DATABASE_URL` | Postgres connection string. Not needed with the Supabase integration, which provides `POSTGRES_URL` |
 | `GITHUB_CLIENT_ID` | OAuth App client ID |
 | `GITHUB_CLIENT_SECRET` | OAuth App client secret |
 | `SESSION_SECRET` | Long random string used to sign sessions and encrypt the owner's GitHub access |
