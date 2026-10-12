@@ -173,7 +173,7 @@ const rows = computed(() => {
 
 ins {
   background: var(--ok-soft);
-  color: #3f6130;
+  color: var(--ok-text);
   text-decoration: none;
   border-radius: 3px;
   padding: 0 1px;

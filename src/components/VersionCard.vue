@@ -144,7 +144,7 @@ header {
 .number {
   font-size: 12px;
   font-weight: 800;
-  color: #5b7d3f;
+  color: var(--ok-text);
   text-transform: uppercase;
   letter-spacing: 0.03em;
   margin-right: 2px;
@@ -229,7 +229,7 @@ header .badge {
   right: -3px;
   bottom: -3px;
   background: var(--ok);
-  color: #fff;
+  color: var(--on-accent);
   border-radius: 50%;
   padding: 1px;
 }

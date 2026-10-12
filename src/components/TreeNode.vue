@@ -108,7 +108,7 @@ const counts = computed(() => {
 }
 
 .kind {
-  color: var(--accent);
+  color: var(--icon);
 }
 
 .row.active .kind {
@@ -141,7 +141,7 @@ const counts = computed(() => {
   padding: 0 5px;
   border-radius: 999px;
   background: var(--hl);
-  color: #7a5812;
+  color: var(--warn-text);
 }
 
 .pill.proposal {

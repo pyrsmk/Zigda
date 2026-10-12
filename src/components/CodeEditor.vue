@@ -23,7 +23,7 @@ const theme = EditorView.theme({
   '&': { backgroundColor: 'var(--surface)', color: 'var(--text)', height: '100%', fontSize: '14px' },
   '.cm-content': { fontFamily: 'var(--mono)', padding: '14px 0', caretColor: 'var(--accent)' },
   '.cm-gutters': { backgroundColor: 'var(--surface-2)', color: 'var(--text-faint)', border: 'none' },
-  '.cm-activeLine': { backgroundColor: 'rgba(79, 82, 196, 0.05)' },
+  '.cm-activeLine': { backgroundColor: 'color-mix(in srgb, var(--accent) 5%, transparent)' },
   '.cm-activeLineGutter': { backgroundColor: 'var(--surface-3)' },
   '&.cm-focused': { outline: 'none' },
   '.cm-selectionBackground, &.cm-focused .cm-selectionBackground, ::selection': {
@@ -38,18 +38,18 @@ const proseTheme = EditorView.theme({
 })
 
 const highlight = HighlightStyle.define([
-  { tag: [tags.heading], fontWeight: '800', color: '#9c4a27' },
+  { tag: [tags.heading], fontWeight: '800', color: 'var(--syn-heading)' },
   { tag: [tags.emphasis], fontStyle: 'italic' },
   { tag: [tags.strong], fontWeight: '800' },
-  { tag: [tags.keyword, tags.bool, tags.null], color: '#b0522c', fontWeight: '600' },
-  { tag: [tags.string, tags.special(tags.string)], color: '#5f7f3a' },
-  { tag: [tags.number], color: '#a0632a' },
-  { tag: [tags.comment], color: '#9b8b72', fontStyle: 'italic' },
-  { tag: [tags.propertyName, tags.attributeName, tags.variableName], color: '#36718a' },
-  { tag: [tags.function(tags.variableName), tags.className], color: '#7b4f9a' },
-  { tag: [tags.link, tags.url], color: '#36718a', textDecoration: 'underline' },
-  { tag: [tags.quote], color: '#7d6d58', fontStyle: 'italic' },
-  { tag: [tags.meta, tags.processingInstruction], color: '#a6957c' },
+  { tag: [tags.keyword, tags.bool, tags.null], color: 'var(--syn-keyword)', fontWeight: '600' },
+  { tag: [tags.string, tags.special(tags.string)], color: 'var(--syn-string)' },
+  { tag: [tags.number], color: 'var(--syn-number)' },
+  { tag: [tags.comment], color: 'var(--syn-comment)', fontStyle: 'italic' },
+  { tag: [tags.propertyName, tags.attributeName, tags.variableName], color: 'var(--syn-attr)' },
+  { tag: [tags.function(tags.variableName), tags.className], color: 'var(--syn-title)' },
+  { tag: [tags.link, tags.url], color: 'var(--syn-attr)', textDecoration: 'underline' },
+  { tag: [tags.quote], color: 'var(--text-dim)', fontStyle: 'italic' },
+  { tag: [tags.meta, tags.processingInstruction], color: 'var(--text-faint)' },
 ])
 
 onMounted(async () => {

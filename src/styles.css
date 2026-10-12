@@ -1,32 +1,57 @@
 :root {
-  --bg: #f6efe1;
-  --surface: #fdf9f0;
-  --surface-2: #f1e8d6;
-  --surface-3: #e9dec8;
-  --border: #e3d6bd;
-  --border-strong: #d4c3a3;
-  --text: #3d3326;
-  --text-dim: #7d6d58;
-  --text-faint: #a6957c;
-  --accent: #4f52c4;
-  --accent-soft: #e1e1f5;
-  --accent-text: #3b3d9e;
-  --ok: #5f8a4e;
-  --ok-soft: #e1ebd2;
-  --warn: #b98a2a;
-  --warn-soft: #f5e6bf;
-  --danger: #b2473c;
-  --danger-soft: #f5d9d3;
-  --hl: #f6dd9a;
-  --hl-strong: #efc660;
-  --hl-sug: #d9e7c6;
-  --hl-sug-strong: #b7d198;
+  color-scheme: light dark;
+  --bg: light-dark(#f6efe1, #272338);
+  --surface: light-dark(#fdf9f0, #312c45);
+  --surface-2: light-dark(#f1e8d6, #201c2f);
+  --surface-3: light-dark(#e9dec8, #1a1727);
+  --border: light-dark(#e3d6bd, #413c5a);
+  --border-strong: light-dark(#d4c3a3, #564f74);
+  --text: light-dark(#3d3326, #e1dfee);
+  --text-dim: light-dark(#7d6d58, #b4b0cf);
+  --text-faint: light-dark(#a6957c, #8681a5);
+  --accent: light-dark(#4f52c4, #6a69db);
+  --accent-soft: light-dark(#e1e1f5, #413b78);
+  --accent-text: light-dark(#3b3d9e, #bdbbff);
+  --icon: light-dark(#4f52c4, #b0a4f8);
+  --glyph: light-dark(currentColor, #b0a4f8);
+  --on-accent: #fffaf2;
+  --ok: light-dark(#5f8a4e, #3d8e53);
+  --ok-soft: light-dark(#e1ebd2, #223d27);
+  --ok-text: light-dark(#466b38, #96d798);
+  --warn: light-dark(#b98a2a, #d9a440);
+  --warn-soft: light-dark(#f5e6bf, #4e3914);
+  --warn-text: light-dark(#7a5812, #efc876);
+  --danger: light-dark(#b2473c, #f58b84);
+  --danger-soft: light-dark(#f5d9d3, #572825);
+  --hl: light-dark(#f6dd9a, #664610);
+  --hl-strong: light-dark(#efc660, #8a5f18);
+  --hl-sug: light-dark(#d9e7c6, #2a482b);
+  --hl-sug-strong: light-dark(#b7d198, #3a643b);
+  --shade: light-dark(rgb(80, 60, 30), rgb(8, 5, 20));
+  --overlay: light-dark(rgba(61, 51, 38, 0.25), rgba(8, 5, 20, 0.45));
+  --syn-comment: light-dark(#9b8b72, #807c97);
+  --syn-keyword: light-dark(#b0522c, #f38abe);
+  --syn-string: light-dark(#5f7f3a, #80dba2);
+  --syn-number: light-dark(#a0632a, #f9a870);
+  --syn-title: light-dark(#7b4f9a, #c4a4fe);
+  --syn-attr: light-dark(#36718a, #6ccdea);
+  --syn-type: light-dark(#8a6415, #eec469);
+  --syn-heading: light-dark(#9c4a27, #e698df);
   --radius: 14px;
   --radius-sm: 9px;
-  --shadow: 0 1px 2px rgba(80, 60, 30, 0.06), 0 6px 20px rgba(80, 60, 30, 0.07);
+  --shadow: 0 1px 2px color-mix(in srgb, var(--shade) 6%, transparent),
+    0 6px 20px color-mix(in srgb, var(--shade) 7%, transparent);
   --font: 'Nunito', system-ui, sans-serif;
   --serif: 'Literata', Georgia, serif;
   --mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
 }
 
 * {
@@ -110,13 +135,13 @@ a {
 
 .badge.pending {
   background: var(--warn-soft);
-  color: #8a6415;
+  color: var(--warn-text);
 }
 
 .badge.applied,
 .badge.resolved {
   background: var(--ok-soft);
-  color: #466b38;
+  color: var(--ok-text);
 }
 
 .badge.rejected,
@@ -132,7 +157,7 @@ a {
 
 .badge.count {
   background: var(--accent);
-  color: #fff8ef;
+  color: var(--on-accent);
   min-width: 20px;
   justify-content: center;
   padding: 1px 6px;
@@ -149,7 +174,7 @@ a {
 
 .notice {
   background: var(--warn-soft);
-  color: #7a5812;
+  color: var(--warn-text);
   border-radius: var(--radius-sm);
   padding: 10px 14px;
   font-size: 14px;
@@ -313,7 +338,7 @@ a {
 
 .hljs-comment,
 .hljs-quote {
-  color: #9b8b72;
+  color: var(--syn-comment);
   font-style: italic;
 }
 
@@ -321,26 +346,26 @@ a {
 .hljs-selector-tag,
 .hljs-built_in,
 .hljs-literal {
-  color: #b0522c;
+  color: var(--syn-keyword);
   font-weight: 600;
 }
 
 .hljs-string,
 .hljs-regexp,
 .hljs-addition {
-  color: #5f7f3a;
+  color: var(--syn-string);
 }
 
 .hljs-number,
 .hljs-symbol,
 .hljs-bullet {
-  color: #a0632a;
+  color: var(--syn-number);
 }
 
 .hljs-title,
 .hljs-section,
 .hljs-function .hljs-title {
-  color: #7b4f9a;
+  color: var(--syn-title);
 }
 
 .hljs-attr,
@@ -348,13 +373,13 @@ a {
 .hljs-variable,
 .hljs-template-variable,
 .hljs-property {
-  color: #36718a;
+  color: var(--syn-attr);
 }
 
 .hljs-type,
 .hljs-class .hljs-title,
 .hljs-meta {
-  color: #8a6415;
+  color: var(--syn-type);
 }
 
 .hljs-deletion {

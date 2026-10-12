@@ -7,7 +7,9 @@ import Avatar from './components/Avatar.vue'
 import Button from './components/Button.vue'
 import Card from './components/Card.vue'
 import Icon from './components/Icon.vue'
+import Segmented from './components/Segmented.vue'
 import { compact } from './lib/viewport.js'
+import { theme } from './lib/theme.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -108,6 +110,15 @@ async function signOut() {
             <strong>{{ session.user.name || session.user.login }}</strong>
             <span class="faint">@{{ session.user.login }}</span>
           </div>
+          <Segmented
+            v-model="theme"
+            class="theme"
+            :options="[
+              { value: 'auto', label: 'Auto', icon: 'monitor' },
+              { value: 'light', label: 'Light', icon: 'sun' },
+              { value: 'dark', label: 'Dark', icon: 'moon' },
+            ]"
+          />
           <button class="menu-item" @click="signOut"><Icon name="logout" /> Sign out</button>
         </Card>
       </div>
@@ -214,6 +225,11 @@ nav {
   text-decoration: none;
 }
 
+.nav-link .icon,
+.menu-item .icon {
+  color: var(--glyph);
+}
+
 .nav-link:hover {
   background: var(--surface-2);
 }
@@ -247,6 +263,17 @@ nav {
   padding: 6px 10px 10px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 6px;
+}
+
+.theme {
+  display: flex;
+  margin-bottom: 6px;
+}
+
+.theme :deep(button) {
+  flex: 1;
+  justify-content: center;
+  padding-inline: 6px;
 }
 
 .menu-item {
@@ -320,7 +347,7 @@ nav {
   .backdrop {
     position: fixed;
     inset: 58px 0 0;
-    background: rgba(61, 51, 38, 0.25);
+    background: var(--overlay);
     z-index: 35;
   }
 }

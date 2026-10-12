@@ -42,12 +42,13 @@ const model = defineModel()
 .segmented button > .icon {
   position: relative;
   top: -0.04em;
+  color: var(--glyph);
 }
 
 .segmented button.active {
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 1px 3px rgba(80, 60, 30, 0.12);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--shade) 12%, transparent);
 }
 
 @media (pointer: coarse) {

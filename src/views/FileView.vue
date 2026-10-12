@@ -808,7 +808,7 @@ const crumbs = computed(() => props.path.split('/'))
   align-items: center;
   height: 1.3em;
   padding: 0 4px;
-  color: var(--accent);
+  color: var(--icon);
   opacity: 0.35;
   user-select: none;
   transition: opacity 0.15s;
@@ -901,7 +901,7 @@ const crumbs = computed(() => props.path.split('/'))
   align-items: center;
   gap: 5px;
   height: 20px;
-  color: #fbf4e6;
+  color: var(--surface);
   padding: 0 9px 0 6px;
   border-radius: 999px;
   font-size: 12px;
@@ -914,7 +914,7 @@ const crumbs = computed(() => props.path.split('/'))
   align-items: center;
   gap: 5px;
   height: 20px;
-  color: #fbf4e6;
+  color: var(--surface);
   padding: 0 9px 0 6px;
   font-size: 12px;
   font-weight: 700;
@@ -922,7 +922,7 @@ const crumbs = computed(() => props.path.split('/'))
 }
 
 .bubble button:hover {
-  background: rgba(255, 255, 255, 0.14);
+  background: color-mix(in srgb, var(--surface) 14%, transparent);
 }
 
 @media (max-width: 1100px) {
@@ -1012,7 +1012,7 @@ const crumbs = computed(() => props.path.split('/'))
     padding: 10px 12px calc(40px + env(safe-area-inset-bottom));
     border-top: 1px solid var(--border-strong);
     border-radius: var(--radius) var(--radius) 0 0;
-    box-shadow: 0 -6px 24px rgba(80, 60, 30, 0.15);
+    box-shadow: 0 -6px 24px color-mix(in srgb, var(--shade) 15%, transparent);
     visibility: hidden;
     transition: bottom 0.2s, visibility 0s 0.2s;
   }
@@ -1050,7 +1050,7 @@ const crumbs = computed(() => props.path.split('/'))
 }
 
 .sheet-count {
-  background: #fffaf2;
+  background: var(--on-accent);
   color: var(--accent-text);
   border-radius: 999px;
   min-width: 20px;

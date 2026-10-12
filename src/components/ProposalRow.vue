@@ -68,7 +68,6 @@ const updated = computed(() => new Date(Math.max(...versions.value.map((v) => ne
 
 .row.review {
   border-color: var(--accent-soft);
-  background: #fffaf3;
 }
 
 .text {

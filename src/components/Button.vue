@@ -54,21 +54,21 @@ defineProps({
 .btn.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fffaf2;
+  color: var(--on-accent);
 }
 
 .btn.primary:hover:not(:disabled) {
-  background: #4246b0;
+  background: color-mix(in srgb, var(--accent), black 12%);
 }
 
 .btn.ok {
   background: var(--ok);
   border-color: var(--ok);
-  color: #fbfff5;
+  color: var(--on-accent);
 }
 
 .btn.ok:hover:not(:disabled) {
-  background: #527a42;
+  background: color-mix(in srgb, var(--ok), black 12%);
 }
 
 .btn.danger {
@@ -94,6 +94,10 @@ defineProps({
 .btn > .icon {
   position: relative;
   top: -0.04em;
+}
+
+.btn:not(.primary, .ok, .danger) > .icon {
+  color: var(--glyph);
 }
 
 @media (pointer: coarse) {

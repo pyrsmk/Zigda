@@ -71,7 +71,7 @@ async function dismiss() {
   background: var(--warn-soft);
   border: 1px solid var(--warn);
   border-radius: var(--radius);
-  color: #7a5812;
+  color: var(--warn-text);
 }
 
 .icon {
