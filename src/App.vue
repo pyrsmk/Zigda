@@ -53,6 +53,12 @@ watch(
   { immediate: true },
 )
 
+watch(
+  () => session.user && session.repo?.name,
+  (name) => (document.title = name ? `Zigda · ${name}` : 'Zigda'),
+  { immediate: true },
+)
+
 async function signOut() {
   menuOpen.value = false
   await logout()
