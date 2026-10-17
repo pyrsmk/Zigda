@@ -680,7 +680,7 @@ const crumbs = computed(() => props.path.split('/'))
 .body {
   flex: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-columns: minmax(0, 1fr) clamp(380px, 45%, 720px);
   min-height: 0;
 }
 
@@ -925,7 +925,7 @@ const crumbs = computed(() => props.path.split('/'))
   background: color-mix(in srgb, var(--surface) 14%, transparent);
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1200px) {
   .body {
     grid-template-columns: 1fr;
   }
