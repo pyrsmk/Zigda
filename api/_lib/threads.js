@@ -2,6 +2,7 @@ import { one, query } from './db.js'
 import { HttpError } from './http.js'
 import { publicUser } from './session.js'
 import { recordFileDeleted, recordPassageChanged } from './alerts.js'
+import { notifyDeletionReady, notifyLost } from './notify.js'
 import { locate, overlaps } from '../../shared/anchor.js'
 
 export async function usersById(ids) {
@@ -135,17 +136,18 @@ export async function addMessage(threadId, userId, body, kind = 'text') {
 }
 
 export async function setThreadStatus(threadId, status, userId) {
-  await query(
+  const thread = await one(
     `update threads set status = $2, updated_at = now(),
        resolved_by = case when $2 = 'resolved' then $3::bigint end,
        resolved_at = case when $2 = 'resolved' then now() end
-     where id = $1`,
+     where id = $1 returning *`,
     [threadId, status, userId],
   )
+  if (status === 'resolved') await notifyDeletionReady(thread, userId)
 }
 
 export async function purgePath(path, via = 'repository') {
-  await recordFileDeleted(path, via)
+  await notifyLost(await recordFileDeleted(path, via), path, 'file_deleted')
   const removed = await query(
     `delete from threads t where t.path = $1 and not exists (
        select 1 from proposals p where p.thread_id = t.id
@@ -159,7 +161,7 @@ export async function purgePath(path, via = 'repository') {
 }
 
 export async function closeVanished(thread, userId) {
-  await recordPassageChanged(thread)
+  await notifyLost(await recordPassageChanged(thread), thread.path, 'passage_changed')
   await query(
     `update proposals set status = 'discarded', error = 'passage_missing', updated_at = now()
       where thread_id = $1 and status in ('pending', 'conflict', 'applying')`,

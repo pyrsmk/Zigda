@@ -1,4 +1,7 @@
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { currentUser } from './session.js'
+
+const request = new AsyncLocalStorage()
 
 export class HttpError extends Error {
   constructor(status, code, message = code, details = {}) {
@@ -10,7 +13,7 @@ export class HttpError extends Error {
 }
 
 export function handler(routes, { auth = 'member' } = {}) {
-  return async (req, res) => {
+  const handle = async (req, res) => {
     const method = req.method?.toUpperCase()
     const route = routes[method]
     if (!route) {
@@ -32,6 +35,11 @@ export function handler(routes, { auth = 'member' } = {}) {
       send(res, 500, { code: 'server_error', error: err.message ?? 'Unexpected error' })
     }
   }
+  return (req, res) => request.run({ origin: origin(req) }, () => handle(req, res))
+}
+
+export function requestOrigin() {
+  return request.getStore()?.origin
 }
 
 export function send(res, status, body) {

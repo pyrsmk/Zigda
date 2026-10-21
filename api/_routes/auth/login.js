@@ -14,7 +14,7 @@ export default handler(
       const params = new URLSearchParams({
         client_id: process.env.GITHUB_CLIENT_ID,
         redirect_uri: `${origin(req)}/api/auth/callback`,
-        scope: wantsRepo ? 'repo read:user' : 'read:user',
+        scope: wantsRepo ? 'repo read:user user:email' : 'read:user user:email',
         state,
         allow_signup: 'true',
       })

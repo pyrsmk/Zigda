@@ -9,6 +9,9 @@ create table if not exists users (
   last_seen_at timestamptz
 );
 
+alter table users add column if not exists email text;
+alter table users add column if not exists email_granted boolean not null default false;
+
 create unique index if not exists users_single_root on users (role) where role = 'root';
 
 create table if not exists settings (

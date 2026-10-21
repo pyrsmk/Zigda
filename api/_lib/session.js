@@ -50,7 +50,7 @@ export async function currentUser(req) {
   } catch {
     return null
   }
-  const user = await one('select * from users where id = $1 and active', [userId])
+  const user = await one('select * from users where id = $1 and active and email_granted', [userId])
   if (user && (!user.last_seen_at || Date.now() - new Date(user.last_seen_at) > 5 * 60_000)) {
     await query('update users set last_seen_at = now() where id = $1', [user.id])
   }

@@ -1,15 +1,17 @@
 import { handler, origin, param, redirect } from '../../_lib/http.js'
-import { exchangeCode, gh } from '../../_lib/github.js'
+import { exchangeCode, gh, primaryEmail } from '../../_lib/github.js'
 import { one, query } from '../../_lib/db.js'
 import { cookies, openSession, setCookie } from '../../_lib/session.js'
 import { saveRootToken, settings } from '../../_lib/repo.js'
 
 async function upsertProfile(profile, role) {
   return one(
-    `insert into users (id, login, name, avatar_url, role) values ($1, $2, $3, $4, $5)
-     on conflict (id) do update set login = $2, name = $3, avatar_url = $4, active = true
+    `insert into users (id, login, name, avatar_url, role, email, email_granted)
+     values ($1, $2, $3, $4, $5, $6, $7)
+     on conflict (id) do update set login = $2, name = $3, avatar_url = $4, active = true,
+       email = coalesce($6, users.email), email_granted = $7
      returning *`,
-    [profile.id, profile.login, profile.name, profile.avatar_url, role],
+    [profile.id, profile.login, profile.name, profile.avatar_url, role, profile.email, profile.emailGranted],
   )
 }
 
@@ -32,7 +34,12 @@ export default handler(
       }
 
       const { token, scopes } = await exchangeCode(param(req, 'code'), `${origin(req)}/api/auth/callback`)
-      const profile = await gh(token, '/user')
+      const emailGranted = scopes.includes('user:email')
+      const profile = {
+        ...(await gh(token, '/user')),
+        email: emailGranted ? await primaryEmail(token) : null,
+        emailGranted,
+      }
       const hasRepoScope = scopes.includes('repo')
 
       let user = await one('select * from users where id = $1', [profile.id])

@@ -3,6 +3,7 @@ import { readFile, repoContext } from '../../_lib/repo.js'
 import { checkAnchor, createThread, isTaken, loadThread, loadThreads, purgePath } from '../../_lib/threads.js'
 import { checkUnlocked, holdsLock, releaseLock } from '../../_lib/locks.js'
 import { addVersion } from '../../_lib/proposals.js'
+import { notifyQuestion } from '../../_lib/notify.js'
 import { locate, makeAnchor } from '../../../shared/anchor.js'
 
 export default handler({
@@ -43,6 +44,7 @@ export default handler({
       body: input.body,
     })
     if (proposing) await addVersion(thread.id, req.user, { content: input.replacement }, { announce: false })
+    else await notifyQuestion(thread, req.user, input.body)
     if (held) await releaseLock(input.lockId, req.user.id)
     send(res, 201, { thread: await loadThread(thread.id) })
   },

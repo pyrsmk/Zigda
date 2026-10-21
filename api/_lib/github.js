@@ -47,3 +47,8 @@ export async function exchangeCode(code, redirectUri) {
   if (!data.access_token) throw new HttpError(401, 'oauth_failed', data.error_description ?? 'OAuth exchange failed')
   return { token: data.access_token, scopes: (data.scope ?? '').split(/[,\s]+/).filter(Boolean) }
 }
+
+export async function primaryEmail(token) {
+  const emails = await gh(token, '/user/emails')
+  return emails.find((e) => e.primary && e.verified)?.email ?? null
+}

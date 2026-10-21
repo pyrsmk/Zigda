@@ -1,5 +1,6 @@
 import { body, handler, HttpError, param, send } from '../../../_lib/http.js'
 import { addMessage, loadThread } from '../../../_lib/threads.js'
+import { notifyReply } from '../../../_lib/notify.js'
 
 export default handler({
   POST: async (req, res) => {
@@ -7,6 +8,7 @@ export default handler({
     const text = String((await body(req)).body ?? '').trim()
     if (!text) throw new HttpError(400, 'body_required', 'A message is required')
     await addMessage(thread.id, req.user.id, text)
+    await notifyReply(thread, req.user, text)
     send(res, 201, { thread: await loadThread(thread.id) })
   },
 })

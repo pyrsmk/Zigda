@@ -11,6 +11,14 @@ import {
   reviewers,
   setThreadStatus,
 } from './threads.js'
+import {
+  notifyApplied,
+  notifyApproved,
+  notifyDiscarded,
+  notifyProposed,
+  notifyRejected,
+  notifyReset,
+} from './notify.js'
 import { locate, makeAnchor } from '../../shared/anchor.js'
 
 const APP_NAME = 'Zigda'
@@ -63,7 +71,9 @@ export async function approveProposal(id, user) {
     [id, user.id],
   )
   if (await isComplete(proposal)) return applyProposal(id, user, 'applied')
-  if (inserted.length) await addMessage(proposal.thread_id, user.id, `approved@${id}`, 'event')
+  if (!inserted.length) return
+  await addMessage(proposal.thread_id, user.id, `approved@${id}`, 'event')
+  await notifyApproved(proposal, user)
 }
 
 export async function applyCompletedProposals(actor) {
@@ -164,12 +174,14 @@ async function applyProposal(id, actor, event) {
       [id, result.commitSha, actor.id],
     )
     await addMessage(thread.id, actor.id, `${event}@${id}`, 'event')
+    await notifyApplied(proposal, actor)
     if (proposal.action === 'replace') {
-      await query(
+      const discarded = await query(
         `update proposals set status = 'discarded', error = 'other_version', updated_at = now()
-          where thread_id = $1 and id <> $2 and status in ('pending', 'conflict')`,
+          where thread_id = $1 and id <> $2 and status in ('pending', 'conflict') returning *`,
         [thread.id, id],
       )
+      await notifyDiscarded(discarded, actor)
       await rebaseAnchors(proposal.path, thread.id, result.edit)
     }
     await setThreadStatus(thread.id, 'resolved', actor.id)
@@ -206,6 +218,7 @@ export async function closeProposal(id, user, status) {
   )
   if (!updated) throw new HttpError(409, 'proposal_not_pending', 'This proposal is no longer pending')
   await addMessage(proposal.thread_id, user.id, `${status}@${id}`, 'event')
+  if (status === 'rejected') await notifyRejected(updated, user)
   if (proposal.action !== 'replace') await setThreadStatus(proposal.thread_id, 'resolved', user.id)
 }
 
@@ -231,10 +244,11 @@ export async function addVersion(threadId, user, { content }, { announce = true 
   if (existing) throw new HttpError(409, 'version_exists', 'You already have a version in this discussion')
   const proposal = await one(
     `insert into proposals (thread_id, path, action, base_sha, base_content, content, author_id)
-     values ($1, $2, 'replace', $3, $4, $5, $6) returning id`,
+     values ($1, $2, 'replace', $3, $4, $5, $6) returning *`,
     [thread.id, thread.path, thread.base_sha, thread.anchor.quote, content, user.id],
   )
   if (announce) await addMessage(thread.id, user.id, `proposed@${proposal.id}`, 'event')
+  await notifyProposed(proposal, user)
   return proposal
 }
 
@@ -255,6 +269,7 @@ export async function reviseProposal(id, user, { content, title }) {
   )
   const reset = await query('delete from approvals where proposal_id = $1 returning user_id', [id])
   await addMessage(proposal.thread_id, user.id, `${reset.length ? 'updated:reset' : 'updated'}@${id}`, 'event')
+  if (reset.length) await notifyReset({ ...proposal, content }, user, reset.map((r) => r.user_id))
 }
 
 export async function cancelAuthorProposals(userId, actor) {

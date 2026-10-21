@@ -22,6 +22,11 @@ A simple space to read, discuss and collaboratively edit the text files of a Git
   - a new version of a passage, inside its discussion (anyone can add their own version, one at a time);
   - the creation of a file, written in the editor;
   - the deletion of a file.
+- **Email notifications** (optional): members are emailed when a change is proposed or a question is asked,
+  when someone replies in a discussion they took part in, and when something happens to their own
+  proposals (approved, applied, rejected, set aside or lost). They are also told when their approval is
+  needed again or is the last one missing, and when a deletion can finally be approved. Nobody is notified
+  of their own actions. Emails go to the primary address of each member's GitHub account.
 
 ### How approval works
 
@@ -86,6 +91,19 @@ openssl rand -base64 48
 > happens, the owner just needs to sign in again from the Settings page.
 
 Deploy, then sign in: the first person to sign in becomes the owner of the space.
+
+### 4. Enable email notifications (optional)
+
+Notifications are sent with [Resend](https://resend.com). Create an account, verify the domain you want to
+send from (*Domains → Add domain*, then add the DNS records it gives you), create an API key and set:
+
+| Variable | Description |
+| --- | --- |
+| `RESEND_API_KEY` | Resend API key |
+| `MAIL_FROM` | Sender address on the verified domain, e.g. `Zigda <zigda@your-domain.com>` |
+
+Without these variables, no email is sent. Members who signed in with a version of Zigda older than this
+feature are asked to sign in again once, so that Zigda can read their email address.
 
 ## Local development
 

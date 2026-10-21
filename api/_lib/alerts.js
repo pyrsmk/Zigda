@@ -8,12 +8,14 @@ export async function recordPassageChanged(thread) {
     `select author_id, content from proposals where thread_id = $1 and status = any($2) order by created_at`,
     [thread.id, OPEN],
   )
-  if (!lost.length) return
-  await query(`insert into alerts (kind, path, thread_id, details) values ('passage_changed', $1, $2, $3)`, [
-    thread.path,
-    thread.id,
-    JSON.stringify({ quote: thread.anchor.quote, proposals: lost }),
-  ])
+  if (lost.length) {
+    await query(`insert into alerts (kind, path, thread_id, details) values ('passage_changed', $1, $2, $3)`, [
+      thread.path,
+      thread.id,
+      JSON.stringify({ quote: thread.anchor.quote, proposals: lost }),
+    ])
+  }
+  return lost
 }
 
 export async function recordFileDeleted(path, via) {
@@ -24,11 +26,13 @@ export async function recordFileDeleted(path, via) {
       order by p.created_at`,
     [path, OPEN],
   )
-  if (!lost.length) return
-  await query(`insert into alerts (kind, path, details) values ('file_deleted', $1, $2)`, [
-    path,
-    JSON.stringify({ via, proposals: lost }),
-  ])
+  if (lost.length) {
+    await query(`insert into alerts (kind, path, details) values ('file_deleted', $1, $2)`, [
+      path,
+      JSON.stringify({ via, proposals: lost }),
+    ])
+  }
+  return lost
 }
 
 export async function listAlerts(userId) {

@@ -4,6 +4,7 @@ import { readFile, repoContext } from '../../_lib/repo.js'
 import { createThread, loadThreads } from '../../_lib/threads.js'
 import { checkContent } from '../../_lib/proposals.js'
 import { listAlerts } from '../../_lib/alerts.js'
+import { notifyProposed } from '../../_lib/notify.js'
 import { checkFileUnlocked } from '../../_lib/locks.js'
 
 const OPEN = `('pending', 'applying', 'conflict')`
@@ -60,9 +61,10 @@ export default handler({
     const thread = await createThread({ path, kind: 'proposal', baseSha, userId: req.user.id, body: input.body })
     const proposal = await one(
       `insert into proposals (thread_id, path, action, title, base_sha, base_content, content, author_id)
-       values ($1, $2, $3, $4, $5, $6, $7, $8) returning id`,
+       values ($1, $2, $3, $4, $5, $6, $7, $8) returning *`,
       [thread.id, path, input.action, input.title?.trim() || null, baseSha, baseContent, content, req.user.id],
     )
+    await notifyProposed(proposal, req.user)
     send(res, 201, { id: proposal.id })
   },
 })
