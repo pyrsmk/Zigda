@@ -2,8 +2,6 @@ import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import pg from 'pg'
 
-const URL_VARS = ['DATABASE_URL', 'POSTGRES_URL', 'POSTGRES_PRISMA_URL', 'POSTGRES_URL_NON_POOLING']
-
 pg.types.setTypeParser(20, Number)
 
 let pool
@@ -11,16 +9,15 @@ let ready
 
 export function db() {
   if (!pool) {
-    const found = URL_VARS.find((name) => process.env[name])
-    if (!found) throw new Error(`No database URL found, looked for: ${URL_VARS.join(', ')}`)
-    const url = new URL(process.env[found])
+    if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set')
+    const url = new URL(process.env.DATABASE_URL)
     url.searchParams.delete('sslmode')
     const connectionString = url.toString()
     const local = /localhost|127\.0\.0\.1|host=\//.test(connectionString)
     pool = new pg.Pool({
       connectionString,
       max: 3,
-      ssl: local ? false : { rejectUnauthorized: false },
+      ssl: !local,
     })
   }
   return pool

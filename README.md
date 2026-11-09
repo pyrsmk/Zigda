@@ -50,7 +50,7 @@ A simple space to read, discuss and collaboratively edit the text files of a Git
 ## Deployment
 
 Zigda is designed to run on [Vercel](https://vercel.com) with a Postgres database
-(e.g. [Supabase](https://supabase.com)).
+(e.g. [Neon](https://neon.com)).
 
 ### 1. Create a GitHub OAuth App
 
@@ -63,9 +63,8 @@ Copy the *Client ID* and generate a *Client secret*.
 
 ### 2. Create the database
 
-Create a Supabase project and copy its Postgres connection string
-(*Connect → Transaction pooler*, port 6543). The Supabase integration from the Vercel marketplace works
-too: it provides `POSTGRES_URL`, which is picked up automatically, so you don't need to set `DATABASE_URL`.
+Create a Neon project and copy its connection string (*Connect*, with *Connection pooling* enabled).
+The Neon integration from the Vercel marketplace works too: it sets `DATABASE_URL` for you.
 
 Tables are created automatically on first use.
 
@@ -75,7 +74,7 @@ Import the repository into Vercel and set the following environment variables:
 
 | Variable | Description |
 | --- | --- |
-| `DATABASE_URL` | Postgres connection string. Not needed with the Supabase integration, which provides `POSTGRES_URL` |
+| `DATABASE_URL` | Postgres connection string. Already set by the Neon integration |
 | `GITHUB_CLIENT_ID` | OAuth App client ID |
 | `GITHUB_CLIENT_SECRET` | OAuth App client secret |
 | `SESSION_SECRET` | Long random string used to sign sessions and encrypt the owner's GitHub access |
